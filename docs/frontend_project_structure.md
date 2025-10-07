@@ -1,67 +1,216 @@
-# Research Repository — Frontend Project Structure (V1)
+# Research Repository — Frontend Project Structure (V2)
 
-Version: 2025-10-07  
-Audience: Frontend devs  
-Status: V1 — First version. Still a developer choice. You may evolve this as you code, but keep types/contracts in sync with main spec.
+Version: V2 - 2025-10-07
+
+A future-proof, scalable, and idiomatic **React + TypeScript (Vite)** project structure.
 
 ---
 
-## Recommended Structure
+## Stack & Tools
+
+- **Vite** (React + TypeScript)
+- **React Router**
+- **Axios** for API requests
+- **Google SSO** for authentication
+- **CSS Modules** + global variables.css (no UI libraries)
+- **ESLint + Prettier + Strict TypeScript**
+- **Folder aliases:** `@/` for `src/`
+
+---
+
+## Folder Structure
 
 ```
-src/
-├─ app/              # App bootstrap (main.tsx, App.tsx, router.tsx)
-├─ pages/            # Route-level screens (Library, Requests, Research)
-├─ components/       # Reusable building blocks
-│  ├─ layout/        # Navbar, ProtectedRoute, etc.
-│  ├─ ui/            # Button, input, etc.
-│  └─ domain/        # ResearchCard, RequestRow, etc.
-├─ api/              # API wrapper functions (mock + real)
-│  ├─ index.ts
-│  ├─ mock/
-│  └─ real/
-├─ types/            # domain.ts (authoritative TS types; keep in sync with main spec)
-├─ mocks/            # dummyData.ts (dev-only, realistic objects)
-├─ context/          # UserContext or AuthContext (for mock/dev phase)
-├─ hooks/            # useRole, useApi, etc.
-├─ lib/              # config (USE_MOCKS toggle), download helper, etc.
-├─ styles/           # globals.css, tokens.css
-└─ assets/           # Logo, pdf icon, etc.
+
+research-repository/
+├─ public/
+│ ├─ favicon.ico
+│ ├─ manifest.json
+│ └─ logo.png
+│
+├─ src/
+│ ├─ assets/ # Static images, SVGs, icons
+│ │ ├─ images/
+│ │ └─ icons/
+│ │
+│ ├─ components/ # Reusable, presentational UI elements
+│ │ ├─ common/
+│ │ │ ├─ Button/
+│ │ │ │ ├─ Button.tsx
+│ │ │ │ └─ Button.module.css
+│ │ │ ├─ Input/
+│ │ │ ├─ Header/
+│ │ │ ├─ Footer/
+│ │ │ └─ ProfileButton/
+│ │ │
+│ │ ├─ research/ # Domain-specific UI (e.g. ResearchCard)
+│ │ │ ├─ ResearchCard/
+│ │ │ └─ ResearchList/
+│ │ │
+│ │ └─ index.ts # Re-export components for cleaner imports
+│ │
+│ ├─ features/ # Role- or domain-based modules (Clean Architecture style)
+│ │ ├─ auth/
+│ │ │ ├─ components/
+│ │ │ ├─ hooks/
+│ │ │ ├─ pages/
+│ │ │ ├─ services/
+│ │ │ └─ types.ts
+│ │ │
+│ │ ├─ student/
+│ │ │ ├─ pages/
+│ │ │ ├─ components/
+│ │ │ ├─ services/
+│ │ │ └─ types.ts
+│ │ │
+│ │ ├─ departmentAdmin/
+│ │ │ ├─ pages/
+│ │ │ ├─ components/
+│ │ │ ├─ services/
+│ │ │ └─ types.ts
+│ │ │
+│ │ └─ superAdmin/
+│ │ ├─ pages/
+│ │ ├─ components/
+│ │ ├─ services/
+│ │ └─ types.ts
+│ │
+│ ├─ pages/ # Public or shared routes (non-role)
+│ │ ├─ Home/
+│ │ ├─ NotFound/
+│ │ └─ index.ts
+│ │
+│ ├─ routes/ # All routing and guards
+│ │ ├─ AppRouter.tsx # Central route management
+│ │ ├─ ProtectedRoute.tsx # Auth guard
+│ │ └─ routeConfig.ts # Role-based route configuration
+│ │
+│ ├─ hooks/ # Global reusable hooks
+│ │ ├─ useAuth.ts
+│ │ ├─ useAxios.ts
+│ │ └─ useRole.ts
+│ │
+│ ├─ services/ # API layer
+│ │ ├─ apiClient.ts # axios instance + interceptors
+│ │ ├─ userService.ts
+│ │ ├─ researchService.ts
+│ │ └─ types.ts
+│ │
+│ ├─ context/ # React Context API providers
+│ │ ├─ AuthContext.tsx
+│ │ └─ RoleContext.tsx
+│ │
+│ ├─ utils/ # Small reusable helpers
+│ │ ├─ formatDate.ts
+│ │ ├─ constants.ts
+│ │ ├─ roleUtils.ts
+│ │ └─ validation.ts
+│ │
+│ ├─ styles/ # Global styling
+│ │ ├─ variables.css
+│ │ ├─ globals.css
+│ │ └─ reset.css
+│ │
+│ ├─ types/ # Global shared TypeScript interfaces
+│ │ ├─ user.ts
+│ │ ├─ research.ts
+│ │ └─ index.ts
+│ │
+│ ├─ App.tsx
+│ ├─ main.tsx
+│ └─ vite-env.d.ts
+│
+├─ .eslintrc.cjs
+├─ .prettierrc
+├─ tsconfig.json
+├─ tsconfig.node.json
+└─ package.json
+
 ```
 
 ---
 
-## Key Principles
+## Folder Purposes
 
-- All contract types live in `src/types/domain.ts` and match the main spec exactly.
-- Dummy/mock data is realistic, typed, and lives in `src/mocks/`.
-- All API calls go through `src/api/index.ts` (swap mock/real with a config flag).
-- Role-based UI logic lives in hooks/components, not spread through pages.
-- CSS Modules for components. Keep global CSS minimal.
-
----
-
-## Getting Started
-
-1. Scaffold folders as above.
-2. Put contract types in `src/types/domain.ts`.
-3. Add some mock data in `src/mocks/dummyData.ts` for dev.
-4. Build API wrapper functions; start with mock implementations.
-5. Use a context/provider for user/auth during dev.
-6. Use role-based guards in routing.
-7. When backend lands, flip to real API layer.
+| Folder          | Description                                                                |
+| --------------- | -------------------------------------------------------------------------- |
+| **components/** | Pure, stateless, reusable UI pieces (buttons, cards, forms).               |
+| **features/**   | Modular areas of the app grouped by role or domain (auth, student, admin). |
+| **pages/**      | Full page views used directly by the router.                               |
+| **routes/**     | Contains main router setup, route guards, and role-based configs.          |
+| **hooks/**      | Reusable logic such as authentication, role, or axios instance.            |
+| **services/**   | Axios API layer (no direct API calls inside components).                   |
+| **context/**    | React context for auth/session/global state.                               |
+| **utils/**      | Helpers and utility functions (formatting, constants, validators).         |
+| **styles/**     | Global CSS (variables, resets, and themes).                                |
+| **types/**      | Centralized shared TypeScript types/interfaces.                            |
 
 ---
 
-## Evolving Structure
+## Authentication (Google SSO)
 
-- As you add features, split domain widgets or utility hooks into their own folders.
-- Keep contract types and API payloads synced with the main spec.
-- If you change types or API, update the spec first.
+- **`AuthContext.tsx`** stores the logged-in user and JWT.
+- **`useAuth()`** provides login/logout and user data access.
+- **`ProtectedRoute.tsx`** guards routes requiring authentication.
+- Tokens verified by backend; frontend stores minimal session data securely.
 
 ---
 
-## Docs
+## TypeScript & Coding Standards
 
-- Put README.md and any onboarding docs in project root.
-- Reference the main spec and API contract as your source of truth.
+- Enable strict mode (`"strict": true` in `tsconfig.json`).
+- Use small, strongly typed modules.
+- Example typed API call:
+
+  ```ts
+  import { apiClient } from "@/services/apiClient";
+  import type { User } from "@/types/user";
+
+  export const getUser = async (): Promise<User> => {
+    const { data } = await apiClient.get<User>("/user/me");
+    return data;
+  };
+  ```
+
+- Prefer **feature-based imports** using `@/` alias:
+
+  ```ts
+  import { Button } from "@/components/common/Button";
+  import { useAuth } from "@/hooks/useAuth";
+  ```
+
+---
+
+## Role-Based Routing Example
+
+| Role                 | Example Pages                                                 |
+| -------------------- | ------------------------------------------------------------- |
+| **STUDENT**          | `/student/request` — Submit research requests                 |
+| **DEPARTMENT_ADMIN** | `/department/manage-requests` — Approve/deny student requests |
+| **SUPER_ADMIN**      | `/super-admin/users` — Manage departments and users           |
+
+All roles share `/home`, but differ in navigation headers.
+
+---
+
+## Development Conventions
+
+- Keep components small, composable, and typed.
+- Never call `axios` directly in a component — always use a service file.
+- Use `.module.css` per component for scoped styles.
+- Enforce formatting:
+
+  ```bash
+  npm run lint
+  npm run format
+  ```
+
+- Commit meaningful and scoped messages (e.g., `feat(auth): add Google login`).
+
+---
+
+## Summary Philosophy
+
+> Keep it **modular**, **typed**, and **isolated**.
+> Each folder should feel replaceable without breaking the rest of the app.
+> Structure now = freedom later.
