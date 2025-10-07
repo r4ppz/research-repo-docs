@@ -209,7 +209,7 @@ All roles share `/home`, but differ in navigation headers.
 
 ---
 
-## Summary Philosophy
+## Philosophy
 
 > Keep it **modular**, **typed**, and **isolated**.
 > Each folder should feel replaceable without breaking the rest of the app.
