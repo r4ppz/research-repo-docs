@@ -1,35 +1,35 @@
 # Research Repository — Frontend Structure & Implementation Guide
 
-**Version:** V3  
-**Date:** 2025-10-07  
-**Status:** Canonical — This is the single source of truth for frontend structure.
+Version: V3
+Date: 2025-10-07
+Status: Canonical — Single source of truth for frontend structure.
 
 ---
 
-## Philosophy: Why This Structure Exists
+## Philosophy
 
-1. **Future-proofing:** When backend is ready, you swap `services/mock/` for `services/api/`. Components don't change.
-2. **Role isolation:** Student, Admin, SuperAdmin features are decoupled. Delete one, nothing breaks.
-3. **No prop-drilling hell:** Context for auth, custom hooks for data fetching.
-4. **Type safety:** TypeScript strict mode catches bugs at compile time, not in production.
-5. **CSS sanity:** CSS Modules prevent style collisions; global variables keep design tokens consistent.
+- Future-proof: Swap services/mock for services/api without touching components.
+- Modular: Features are self-contained; delete one, the rest stands.
+- Typed: Strict TypeScript across the board.
+- No prop-drilling: Context for session, hooks for data.
+- CSS sanity: CSS Modules per component; CSS variables for tokens.
 
 ---
 
 ## Tech Stack
 
-| Layer     | Tool                        | Why                                                   |
-| --------- | --------------------------- | ----------------------------------------------------- |
-| Build     | Vite                        | Fast. Modern. No Webpack config hell.                 |
-| Language  | TypeScript (strict)         | Catch bugs before runtime. Self-documenting code.     |
-| Framework | React 18                    | De facto standard. Hooks are clean.                   |
-| Routing   | React Router v6             | Industry standard. Good DX.                           |
-| HTTP      | Axios                       | Better than fetch (interceptors, auto-JSON, timeout). |
-| Auth      | Google Identity Services    | Specified in contract. Backend verifies.              |
-| Styling   | CSS Modules + CSS Variables | Scoped styles. No runtime cost. No Tailwind bloat.    |
-| Linting   | ESLint + Prettier           | Code consistency. Auto-format on save.                |
+| Layer     | Tool                        | Why                                    |
+| --------- | --------------------------- | -------------------------------------- |
+| Build     | Vite                        | Fast, modern, zero Webpack yak-shaving |
+| Language  | TypeScript (strict)         | Catch bugs at compile-time             |
+| Framework | React 18                    | Hooks, ecosystem, stability            |
+| Routing   | React Router v6             | Battle-tested                          |
+| HTTP      | Axios                       | Interceptors, timeouts, typed generics |
+| Auth      | Google Identity Services    | Per backend contract                   |
+| Styling   | CSS Modules + CSS Variables | Scoped styles, no runtime tax          |
+| Linting   | ESLint + Prettier           | Consistency, auto-format               |
 
-**No state management library** (Redux, Zustand, etc.) until you need it. Context + hooks are sufficient for this app's complexity.
+No global state library (Redux/Zustand) until there’s clear value. Context + hooks are enough.
 
 ---
 
@@ -42,7 +42,7 @@ research-repository/
 │  └─ logo.png
 │
 ├─ src/
-│  ├─ assets/                    # Static files (images, icons, fonts)
+│  ├─ assets/
 │  │  ├─ images/
 │  │  └─ icons/
 │  │
@@ -54,21 +54,22 @@ research-repository/
 │  │  ├─ Input/
 │  │  ├─ Modal/
 │  │  ├─ Table/
+│  │  ├─ Badge/
 │  │  ├─ Header/
 │  │  ├─ Footer/
-│  │  └─ index.ts               # Re-export all components
+│  │  └─ index.ts
 │  │
-│  ├─ features/                  # Domain modules (self-contained, deletable)
+│  ├─ features/                  # Domain modules (self-contained)
 │  │  ├─ auth/
 │  │  │  ├─ components/
 │  │  │  │  └─ LoginButton.tsx
 │  │  │  ├─ context/
-│  │  │  │  └─ AuthContext.tsx
+│  │  │  │  └─ AuthContext.tsx   # Context lives here
 │  │  │  ├─ hooks/
 │  │  │  │  └─ useAuth.ts
 │  │  │  └─ types.ts
 │  │  │
-│  │  ├─ library/               # Shared "Library" page (all roles see this)
+│  │  ├─ library/                # Shared research UI across roles
 │  │  │  ├─ components/
 │  │  │  │  ├─ ResearchCard/
 │  │  │  │  ├─ ResearchModal/
@@ -116,280 +117,172 @@ research-repository/
 │  │     │  └─ SuperAdminPapersPage.tsx
 │  │     └─ types.ts
 │  │
-│  ├─ services/                  # API layer (centralized, swappable)
-│  │  ├─ api/                    # Real API implementation (when backend ready)
+│  ├─ services/                  # API boundary (swappable mock/real)
+│  │  ├─ api/                    # Real API impl (when backend ready)
 │  │  │  ├─ apiClient.ts         # Axios instance + interceptors
 │  │  │  ├─ authApi.ts
 │  │  │  ├─ papersApi.ts
 │  │  │  ├─ requestsApi.ts
 │  │  │  ├─ adminApi.ts
 │  │  │  └─ index.ts
-│  │  │
-│  │  └─ mock/                   # Mock API (development only)
+│  │  └─ mock/                   # Mock API (dev)
 │  │     ├─ mockApiClient.ts
 │  │     ├─ mockAuthApi.ts
 │  │     ├─ mockPapersApi.ts
 │  │     ├─ mockRequestsApi.ts
 │  │     ├─ mockAdminApi.ts
-│  │     ├─ mockData.ts          # Static mock data
+│  │     ├─ mockData.ts
 │  │     └─ index.ts
 │  │
-│  ├─ hooks/                     # Global reusable hooks (NOT feature-specific)
+│  ├─ hooks/                     # Global reusable hooks (generic)
 │  │  ├─ useLocalStorage.ts
 │  │  ├─ useDebounce.ts
 │  │  ├─ usePagination.ts
 │  │  └─ useAsync.ts
 │  │
 │  ├─ routes/
-│  │  ├─ AppRouter.tsx           # Main router component
-│  │  ├─ ProtectedRoute.tsx      # Auth guard wrapper
-│  │  └─ routes.tsx              # Route config (role-based)
+│  │  ├─ AppRouter.tsx
+│  │  ├─ ProtectedRoute.tsx
+│  │  └─ routes.tsx
 │  │
-│  ├─ types/                     # Global shared types (mirrors API contract)
+│  ├─ types/                     # Global types (mirror API)
 │  │  ├─ user.ts
 │  │  ├─ research.ts
 │  │  ├─ api.ts
 │  │  └─ index.ts
 │  │
-│  ├─ utils/                     # Pure utility functions
+│  ├─ utils/
 │  │  ├─ formatDate.ts
 │  │  ├─ formatters.ts
 │  │  ├─ validators.ts
 │  │  └─ constants.ts
 │  │
-│  ├─ styles/                    # Global CSS
-│  │  ├─ variables.css           # Design tokens (colors, spacing, etc.)
-│  │  ├─ reset.css               # CSS reset
-│  │  └─ globals.css             # Global styles + utilities
+│  ├─ styles/
+│  │  ├─ variables.css
+│  │  ├─ reset.css
+│  │  └─ globals.css
 │  │
-│  ├─ App.tsx                    # Root app component
-│  ├─ main.tsx                   # Vite entry point
-│  └─ vite-env.d.ts              # Vite TypeScript declarations
+│  ├─ App.tsx
+│  ├─ main.tsx
+│  └─ vite-env.d.ts
 │
-├─ .env.example                  # Environment variables template
-├─ .eslintrc.cjs                 # ESLint config
-├─ .prettierrc                   # Prettier config
-├─ tsconfig.json                 # TypeScript config
-├─ tsconfig.node.json            # TypeScript config for Vite
-├─ vite.config.ts                # Vite config
+├─ .env.example
+├─ .eslintrc.cjs
+├─ .prettierrc
+├─ tsconfig.json
+├─ tsconfig.node.json
+├─ vite.config.ts
 └─ package.json
 ```
 
 ---
 
-## Folder Responsibilities (The Contract)
+## Context Placement
 
-### **`components/`** — Pure UI Primitives
+- Feature-owned contexts live inside that feature.
+  - AuthContext → `src/features/auth/context/AuthContext.tsx`
+- Create `src/context/` ONLY for cross-cutting concerns that are not owned by a single feature (e.g., ThemeContext, I18nContext).
+- Always expose contexts via a custom hook (e.g., `useAuth`) to keep a clean public API.
 
-**Rules:**
-
-- NO business logic.
-- NO API calls.
-- NO feature-specific logic.
-- Props-only interface.
-- Fully reusable across features.
-
-**Examples:**
-
-- `Button` — onClick handler, variants (primary/secondary/danger), sizes
-- `Input` — onChange, validation state, label, error message
-- `Modal` — isOpen, onClose, children
-- `Table` — columns config, data array, onSort, onPageChange
-- `Badge` — text, variant (success/warning/danger)
-
-**Anti-pattern:**
+Example usage from any feature:
 
 ```tsx
-// ❌ WRONG — This belongs in features/library/components/
-function ResearchCard({ paper, onRequestAccess }) {
-  return <Card onClick={() => onRequestAccess(paper.id)}>...</Card>;
-}
-```
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
-**Correct pattern:**
-
-```tsx
-// ✅ RIGHT — Pure component
-function Card({ children, onClick, className }) {
-  return (
-    <div className={styles.card} onClick={onClick}>
-      {children}
-    </div>
-  );
-}
+const { user, login, logout } = useAuth();
 ```
 
 ---
 
-### **`features/`** — Domain Modules
+## Folder Responsibilities
 
-**Rules:**
+### components/ — Pure UI primitives
 
-- Each feature is **self-contained**.
-- Deleting a feature folder should not break other features.
-- Features can import from `components/`, `types/`, `services/`, `hooks/`, `utils/`.
-- Features **cannot** import from other features (except `library` since it's shared).
+- No business logic, no API calls, no role/domain coupling.
+- Examples: Button, Input, Modal, Table, Badge, Header, Footer.
 
-**Structure per feature:**
+Anti-pattern (don’t do this in components/):
 
-```
-features/student/
-  ├─ components/       # Student-specific UI (RequestTable, DownloadButton)
-  ├─ hooks/            # Student-specific hooks (useStudentRequests)
-  ├─ pages/            # Full page components (StudentRequestsPage)
-  └─ types.ts          # Student-specific types (if needed)
+```tsx
+// ❌ Domain logic in a primitive
+function ResearchCard({ paper, onApprove }) {
+  /* ... */
+}
 ```
 
-**Shared vs Feature-Specific Decision Tree:**
+### features/ — Domain modules
 
-| Question                         | Answer | Location                                                                |
-| -------------------------------- | ------ | ----------------------------------------------------------------------- |
-| Used by 2+ features?             | Yes    | `features/library/` (if research-related) or `components/` (if pure UI) |
-| Contains feature-specific logic? | Yes    | `features/{role}/components/`                                           |
-| Pure UI with no domain logic?    | Yes    | `components/`                                                           |
+- Self-contained: pages, domain components, hooks, local types.
+- Can import from components, services, hooks, utils, types.
+- Must not import from other feature folders (except shared "library" feature, which is explicitly for cross-role research UI).
 
-**Example: ResearchCard**
+### services/ — API boundary
 
-- Shows paper metadata (title, author, abstract).
-- Used by Library (all roles), Student (requests page), Admin (management).
-- **Location:** `features/library/components/ResearchCard/`
-- **Why:** Domain-specific (research papers) but shared across roles.
+- Centralized interface for all network I/O.
+- Real and mock implementations share the same shape. Toggle via env.
+
+### hooks/ — Global generic hooks
+
+- Reusable utilities (debounce, pagination, local storage).
+- Feature-specific hooks belong under that feature.
+
+### types/ — Global types
+
+- Mirror API contract exactly (camelCase).
+- Single source of truth for DTOs.
 
 ---
 
-### **`services/`** — API Layer
+## Services: Mock vs Real
 
-**Rules:**
-
-- One function per API endpoint.
-- Never call Axios directly from components.
-- Always typed (input params + return type).
-- Mock and real API must have **identical interfaces**.
-
-**Structure:**
-
-```
-services/
-  ├─ api/            # Real API (use when backend ready)
-  │  ├─ apiClient.ts # Axios instance + interceptors (JWT injection, error handling)
-  │  ├─ authApi.ts   # POST /api/auth/google, GET /api/users/me
-  │  ├─ papersApi.ts # GET /api/papers, GET /api/papers/:id
-  │  └─ ...
-  │
-  └─ mock/           # Mock API (use during development)
-     ├─ mockData.ts  # Static mock data
-     └─ mockAuthApi.ts, mockPapersApi.ts, etc.
-```
-
-**Real API Example:**
-
-```ts
-// services/api/papersApi.ts
-import { apiClient } from "./apiClient";
-import type { ResearchPaper, Page } from "@/types";
-
-export const papersApi = {
-  getPapers: async (params?: {
-    page?: number;
-    size?: number;
-    departmentId?: number;
-    archived?: boolean;
-  }): Promise<Page<ResearchPaper>> => {
-    const { data } = await apiClient.get("/api/papers", { params });
-    return data;
-  },
-
-  getPaperById: async (id: number): Promise<ResearchPaper> => {
-    const { data } = await apiClient.get(`/api/papers/${id}`);
-    return data;
-  },
-};
-```
-
-**Mock API Example (same interface):**
-
-```ts
-// services/mock/mockPapersApi.ts
-import { getMockPapers } from "./mockData";
-import type { ResearchPaper, Page } from "@/types";
-
-const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export const mockPapersApi = {
-  getPapers: async (params?: {
-    page?: number;
-    size?: number;
-    departmentId?: number;
-    archived?: boolean;
-  }): Promise<Page<ResearchPaper>> => {
-    await delay();
-    const papers = getMockPapers(params?.archived, params?.departmentId);
-    const page = params?.page ?? 0;
-    const size = params?.size ?? 20;
-    return {
-      content: papers.slice(page * size, (page + 1) * size),
-      totalElements: papers.length,
-      totalPages: Math.ceil(papers.length / size),
-      number: page,
-      size,
-    };
-  },
-
-  getPaperById: async (id: number): Promise<ResearchPaper> => {
-    await delay();
-    const paper = getMockPapers().find((p) => p.paperId === id);
-    if (!paper) throw new Error("Paper not found");
-    return paper;
-  },
-};
-```
-
-**Swapping Mock for Real:**
+Shared service interface:
 
 ```ts
 // services/index.ts
+import { authApi } from "./api/authApi";
 import { papersApi } from "./api/papersApi";
+import { requestsApi } from "./api/requestsApi";
+import { adminApi } from "./api/adminApi";
+
+import { mockAuthApi } from "./mock/mockAuthApi";
 import { mockPapersApi } from "./mock/mockPapersApi";
+import { mockRequestsApi } from "./mock/mockRequestsApi";
+import { mockAdminApi } from "./mock/mockAdminApi";
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 export const api = {
+  auth: USE_MOCK ? mockAuthApi : authApi,
   papers: USE_MOCK ? mockPapersApi : papersApi,
-  // ... other services
+  requests: USE_MOCK ? mockRequestsApi : requestsApi,
+  admin: USE_MOCK ? mockAdminApi : adminApi,
 };
 ```
 
-**Components use `api` — don't care if mock or real:**
+Axios instance with JWT:
 
-```tsx
-import { api } from "@/services";
+```ts
+// services/api/apiClient.ts
+import axios from "axios";
 
-const papers = await api.papers.getPapers();
+export const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? "/",
+  timeout: 15000,
+});
+
+apiClient.interceptors.request.use((config) => {
+  const jwt = sessionStorage.getItem("jwt");
+  if (jwt) config.headers.Authorization = `Bearer ${jwt}`;
+  return config;
+});
 ```
 
 ---
 
-### **`types/`** — Global Type Definitions
-
-**Rules:**
-
-- These types **mirror the API contract exactly**.
-- They are the **single source of truth** for data shapes.
-- Never duplicate types across files.
-
-**Files:**
-
-```
-types/
-  ├─ user.ts       # User, Role, Department
-  ├─ research.ts   # ResearchPaper, DocumentRequest, RequestStatus
-  ├─ api.ts        # Page<T>, AuthResponse, ApiError
-  └─ index.ts      # Re-export all types
-```
-
-**Example (`types/user.ts`):**
+## Types (mirror API)
 
 ```ts
+// types/user.ts
 export type Role = "STUDENT" | "DEPARTMENT_ADMIN" | "SUPER_ADMIN";
 
 export interface Department {
@@ -406,116 +299,167 @@ export interface User {
 }
 ```
 
-**Why no DTOs?**
-
-- The API already returns camelCase JSON (per spec).
-- No transformation needed.
-- These types ARE your DTOs.
-
-**If backend sent snake_case**, you'd do this:
-
 ```ts
-// services/api/transformers.ts
-interface UserDTO {
-  user_id: number;
-  full_name: string;
-  // ...
+// types/research.ts
+export type RequestStatus = "PENDING" | "ACCEPTED" | "REJECTED";
+
+export interface ResearchPaper {
+  paperId: number;
+  title: string;
+  authorName: string;
+  abstractText: string;
+  department: Department;
+  submissionDate: string; // YYYY-MM-DD
+  fileUrl: string;
+  archived: boolean;
+  archivedAt?: string | null;
 }
 
-export const toUser = (dto: UserDTO): User => ({
-  userId: dto.user_id,
-  fullName: dto.full_name,
-  // ...
-});
+export interface DocumentRequest {
+  requestId: number;
+  status: RequestStatus;
+  requestDate: string; // ISO datetime
+  paper: ResearchPaper;
+  requester: User;
+}
 ```
 
-But you don't need this. Your API is already clean.
+```ts
+// types/api.ts
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+export interface AuthResponse {
+  jwt: string;
+  user: User;
+}
+
+export interface ApiError {
+  error: string;
+  code?: string;
+  details?: Array<{ field: string; message: string }>;
+  traceId?: string;
+}
+```
 
 ---
 
-### **`hooks/`** — Global Reusable Hooks
+## Auth
 
-**Rules:**
-
-- Generic, reusable logic (NOT feature-specific).
-- No direct API calls (use services).
-- Examples: debouncing, local storage, pagination.
-
-**Examples:**
+AuthContext lives in `features/auth/context`.
 
 ```tsx
-// hooks/useDebounce.ts
-export function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-
-  return debouncedValue;
-}
-
-// hooks/useLocalStorage.ts
-export function useLocalStorage<T>(key: string, initialValue: T) {
-  const [value, setValue] = useState<T>(() => {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : initialValue;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(value));
-  }, [key, value]);
-
-  return [value, setValue] as const;
-}
-```
-
-**Feature-specific hooks go in `features/{role}/hooks/`:**
-
-```tsx
-// features/student/hooks/useStudentRequests.ts
-import { useState, useEffect } from "react";
+// features/auth/context/AuthContext.tsx
+import { createContext, useEffect, useState, type ReactNode } from "react";
 import { api } from "@/services";
-import type { DocumentRequest } from "@/types";
+import type { User } from "@/types";
 
-export function useStudentRequests() {
-  const [requests, setRequests] = useState<DocumentRequest[]>([]);
+interface AuthContextValue {
+  user: User | null;
+  loading: boolean;
+  login: (googleToken: string) => Promise<void>;
+  logout: () => void;
+}
+
+export const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.requests
-      .getMyRequests()
-      .then(setRequests)
-      .catch((err) => setError(err.message))
+    api.auth
+      .getMe()
+      .then(setUser)
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
 
-  return { requests, loading, error };
+  const login = async (googleToken: string) => {
+    const { jwt, user } = await api.auth.login(googleToken);
+    sessionStorage.setItem("jwt", jwt);
+    setUser(user);
+  };
+
+  const logout = () => {
+    sessionStorage.removeItem("jwt");
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
+```
+
+```ts
+// features/auth/hooks/useAuth.ts
+import { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}
+```
+
+Wrap the app:
+
+```tsx
+// main.tsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { App } from "./App";
+import { AuthProvider } from "@/features/auth/context/AuthContext";
+import "@/styles/globals.css";
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <AuthProvider>
+    <App />
+  </AuthProvider>,
+);
 ```
 
 ---
 
-### **`routes/`** — Routing & Guards
-
-**Files:**
-
-```
-routes/
-  ├─ AppRouter.tsx       # Main router component
-  ├─ ProtectedRoute.tsx  # Auth + role guard wrapper
-  └─ routes.tsx          # Route configuration
-```
-
-**Route Config (`routes/routes.tsx`):**
+## Routing & Guards
 
 ```tsx
+// routes/ProtectedRoute.tsx
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import type { Role } from "@/types";
+
+export function ProtectedRoute({
+  element,
+  roles,
+}: {
+  element: React.ReactNode;
+  roles?: Role[];
+}) {
+  const { user, loading } = useAuth();
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <Navigate to="/login" />;
+  if (roles && !roles.includes(user.role)) return <Navigate to="/" />;
+  return <>{element}</>;
+}
+```
+
+```tsx
+// routes/routes.tsx
+import type { Role } from "@/types";
 import { LibraryPage } from "@/features/library/pages/LibraryPage";
 import { StudentRequestsPage } from "@/features/student/pages/StudentRequestsPage";
 import { AdminRequestsPage } from "@/features/departmentAdmin/pages/AdminRequestsPage";
-// ...
+import { PapersManagementPage } from "@/features/departmentAdmin/pages/PapersManagementPage";
 
 export interface RouteConfig {
   path: string;
@@ -544,36 +488,11 @@ export const routes: RouteConfig[] = [
     element: <PapersManagementPage />,
     roles: ["DEPARTMENT_ADMIN", "SUPER_ADMIN"],
   },
-  // ...
 ];
 ```
 
-**Protected Route (`routes/ProtectedRoute.tsx`):**
-
 ```tsx
-import { Navigate } from "react-router-dom";
-import { useAuth } from "@/features/auth/hooks/useAuth";
-import type { Role } from "@/types";
-
-interface Props {
-  element: React.ReactNode;
-  roles?: Role[];
-}
-
-export function ProtectedRoute({ element, roles }: Props) {
-  const { user, loading } = useAuth();
-
-  if (loading) return <div>Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
-  if (roles && !roles.includes(user.role)) return <Navigate to="/" />;
-
-  return <>{element}</>;
-}
-```
-
-**App Router (`routes/AppRouter.tsx`):**
-
-```tsx
+// routes/AppRouter.tsx
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { routes } from "./routes";
 import { ProtectedRoute } from "./ProtectedRoute";
@@ -597,119 +516,68 @@ export function AppRouter() {
 
 ---
 
-## Authentication Flow
+## Global Hooks (examples)
 
-### **Setup:**
+```ts
+// hooks/useLocalStorage.ts
+import { useEffect, useState } from "react";
 
-1. User clicks "Sign in with Google" button.
-2. Frontend uses Google Identity Services to get ID token.
-3. Frontend sends token to `POST /api/auth/google`.
-4. Backend verifies token, creates/updates user, issues JWT.
-5. Frontend stores JWT (in-memory for MVP, later consider httpOnly cookie).
-6. Frontend calls `GET /api/users/me` to hydrate user state.
-7. AuthContext provides user to entire app.
-
-### **AuthContext (`features/auth/context/AuthContext.tsx`):**
-
-```tsx
-import { createContext, useState, useEffect, ReactNode } from "react";
-import { api } from "@/services";
-import type { User } from "@/types";
-
-interface AuthContextValue {
-  user: User | null;
-  loading: boolean;
-  login: (googleToken: string) => Promise<void>;
-  logout: () => void;
-}
-
-export const AuthContext = createContext<AuthContextValue | null>(null);
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
+export function useLocalStorage<T>(key: string, initial: T) {
+  const [value, setValue] = useState<T>(() => {
+    const s = localStorage.getItem(key);
+    return s ? (JSON.parse(s) as T) : initial;
+  });
   useEffect(() => {
-    // On mount, try to restore session
-    api.auth
-      .getMe()
-      .then(setUser)
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const login = async (googleToken: string) => {
-    const { jwt, user } = await api.auth.login(googleToken);
-    // Store JWT (in-memory for now)
-    sessionStorage.setItem("jwt", jwt);
-    setUser(user);
-  };
-
-  const logout = () => {
-    sessionStorage.removeItem("jwt");
-    setUser(null);
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+    localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+  return [value, setValue] as const;
 }
 ```
 
-### **useAuth Hook (`features/auth/hooks/useAuth.ts`):**
-
-```tsx
-import { useContext } from "react";
-import { AuthContext } from "../context/AuthContext";
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within AuthProvider");
-  }
-  return context;
+```ts
+// hooks/useDebounce.ts
+import { useEffect, useState } from "react";
+export function useDebounce<T>(value: T, delay: number) {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setV(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return v;
 }
 ```
 
 ---
 
-## File Naming Conventions
+## Styling
 
-| Type       | Convention                       | Example                 |
-| ---------- | -------------------------------- | ----------------------- |
-| Component  | PascalCase                       | `ResearchCard.tsx`      |
-| Hook       | camelCase with `use` prefix      | `useResearchPapers.ts`  |
-| Context    | PascalCase with `Context` suffix | `AuthContext.tsx`       |
-| Type       | PascalCase                       | `User`, `ResearchPaper` |
-| Utility    | camelCase                        | `formatDate.ts`         |
-| CSS Module | `{Component}.module.css`         | `Button.module.css`     |
-| Constant   | SCREAMING_SNAKE_CASE             | `API_BASE_URL`          |
+- CSS Modules per component: `Component.module.css`
+- Global tokens in `styles/variables.css`
+- Import `styles/globals.css` once in `main.tsx`
 
----
+Example:
 
-## Import Order (Enforced by ESLint)
+```css
+/* components/Button/Button.module.css */
+.button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  transition: 0.2s ease;
+}
 
-```tsx
-// 1. External dependencies
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-
-// 2. Internal absolute imports (using @/ alias)
-import { Button, Modal } from "@/components";
-import { useAuth } from "@/features/auth/hooks/useAuth";
-import { api } from "@/services";
-import type { User, ResearchPaper } from "@/types";
-
-// 3. Relative imports
-import { ResearchCard } from "../components/ResearchCard";
-import styles from "./LibraryPage.module.css";
+.primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+.primary:hover {
+  background: var(--color-primary-hover);
+}
 ```
 
 ---
 
-## TypeScript Config (`tsconfig.json`)
+## TypeScript Config (strict)
 
 ```json
 {
@@ -719,26 +587,18 @@ import styles from "./LibraryPage.module.css";
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-
-    /* Linting (STRICT) */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-
-    /* Path aliases */
     "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
@@ -747,35 +607,26 @@ import styles from "./LibraryPage.module.css";
 
 ---
 
-## Vite Config (`vite.config.ts`)
+## Vite Config
 
-```typescript
+```ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
+  resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
   server: {
     port: 3000,
-    proxy: {
-      "/api": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-      },
-    },
+    proxy: { "/api": { target: "http://localhost:8080", changeOrigin: true } },
   },
 });
 ```
 
 ---
 
-## Environment Variables (`.env.example`)
+## Environment Variables (.env.example)
 
 ```bash
 # Use mock API (true) or real backend (false)
@@ -784,21 +635,23 @@ VITE_USE_MOCK=true
 # Google OAuth Client ID
 VITE_GOOGLE_CLIENT_ID=your-google-client-id
 
-# API Base URL (if not using Vite proxy)
+# API Base URL (leave unset if using Vite proxy)
 VITE_API_BASE_URL=http://localhost:8080
 ```
 
 ---
 
-## Summary: The Golden Rules
+## Golden Rules
 
-1. **Components are dumb.** No API calls, no business logic. Props in, JSX out.
-2. **Features are isolated.** Delete one, nothing breaks.
-3. **Services are the API boundary.** Components never touch Axios directly.
-4. **Types mirror the API contract.** No divergence allowed.
-5. **Mock and real APIs have identical interfaces.** Swap them with one line.
-6. **CSS Modules for components, CSS Variables for design tokens.** No global class conflicts.
-7. **Strict TypeScript.** If it compiles, it probably works.
-8. **AuthContext for user state.** No prop drilling.
-9. **Role-based routing.** Guard everything.
-10. **When in doubt, ask: "Can I delete this folder without breaking other folders?"** If no, refactor.
+1. Components are dumb: no API calls, no domain logic.
+2. Features are isolated: deleting a feature doesn’t break others.
+3. Services are the only API boundary: components use `api.*` only.
+4. Types mirror the backend contract exactly.
+5. Mock and real services share the same interface; swap via env.
+6. CSS Modules + tokens; no global class leakage.
+7. Use Context sparingly; keep it in the owning feature.
+8. Guard routes by role; never trust the UI for authz.
+9. If a folder can’t be deleted without cross-feature fallout, refactor.
+10. Prefer simple, composable pieces over clever abstractions.
+
+---
