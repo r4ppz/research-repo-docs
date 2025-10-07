@@ -74,7 +74,7 @@ Access rules (server-enforced):
 
 ## 3) Canonical Database Schema (Postgres)
 
-V1 (existing + archive feature):
+V1:
 
 ```sql
 CREATE TABLE departments (
@@ -179,7 +179,7 @@ export interface DocumentRequest {
 
 ## 5) API Contract
 
-See `api_contract_v1.yml`.
+See [API Contract](/docs/api_contract.md).
 
 Highlights for archive feature:
 
@@ -300,4 +300,3 @@ DocumentRequest (paper archived after acceptance):
   "requester": { "...": "User fields" }
 }
 ```
-
