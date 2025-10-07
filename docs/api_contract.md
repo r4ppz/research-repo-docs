@@ -59,7 +59,6 @@ All endpoints are prefixed with /api. Only /api/auth/\*\* is public; everything 
 
 ```ts
 type Role = "STUDENT" | "DEPARTMENT_ADMIN" | "SUPER_ADMIN";
-type PaperStatus = "SUBMITTED" | "APPROVED" | "REJECTED";
 type RequestStatus = "PENDING" | "ACCEPTED" | "REJECTED";
 
 interface Department {
@@ -82,7 +81,6 @@ interface ResearchPaper {
   abstractText: string;
   department: Department;
   submissionDate: string; // YYYY-MM-DD
-  status: PaperStatus;
   fileUrl: string;
   archived: boolean;
   archivedAt?: string | null;
@@ -301,6 +299,11 @@ Responses
 - 415 UNSUPPORTED_MEDIA_TYPE
 - 413 PAYLOAD_TOO_LARGE
 
+Server behavior
+
+- archived defaults to false
+- Stores file, generates fileUrl (e.g., /api/files/<uuid>.pdf)
+
 ### 7.2 PUT /api/admin/papers/{id}
 
 Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
@@ -313,8 +316,7 @@ Request (JSON, all fields optional)
   "authorName": "Jane Doe",
   "abstractText": "Updated abstract",
   "departmentId": 3,
-  "submissionDate": "2025-09-20",
-  "status": "APPROVED"
+  "submissionDate": "2025-09-20"
 }
 ```
 
@@ -409,7 +411,6 @@ Create/Update Paper
 - abstractText: non-empty
 - submissionDate: ISO date (YYYY-MM-DD)
 - departmentId: must exist
-- status: one of SUBMITTED, APPROVED, REJECTED (update only)
 - file (create only): PDF or DOCX; size <= 20MB (configurable)
 
 Create Request
@@ -509,17 +510,10 @@ curl -L "http://localhost:8080/api/files/abcd1234.pdf?paperId=101" \
 
 ## 13) State Machines (for clarity)
 
-Paper.status
-
-- SUBMITTED → APPROVED | REJECTED
-- APPROVED → (optional) REJECTED or stay APPROVED
-- REJECTED → (optional) APPROVED if re-reviewed
-
 Paper.archived
 
 - false → true (via /archive)
 - true → false (via /unarchive)
-- Independent of status
 
 DocumentRequest.status
 

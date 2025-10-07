@@ -83,7 +83,6 @@ CREATE TABLE departments (
 );
 
 CREATE TYPE user_role AS ENUM ('STUDENT', 'DEPARTMENT_ADMIN', 'SUPER_ADMIN');
-CREATE TYPE paper_status AS ENUM ('SUBMITTED', 'APPROVED', 'REJECTED');
 CREATE TYPE request_status AS ENUM ('PENDING', 'ACCEPTED', 'REJECTED');
 
 CREATE TABLE users (
@@ -104,7 +103,6 @@ CREATE TABLE research_papers (
   file_url VARCHAR(512) NOT NULL,
   department_id INT NOT NULL REFERENCES departments(department_id) ON DELETE CASCADE,
   submission_date DATE NOT NULL,
-  status paper_status NOT NULL DEFAULT 'SUBMITTED',
   archived BOOLEAN NOT NULL DEFAULT FALSE,
   archived_at TIMESTAMP NULL,
   created_at TIMESTAMP NOT NULL DEFAULT now(),
@@ -129,7 +127,7 @@ Notes:
 - Department admins: `department_id` set to their department.
 - Super admins: `department_id` NULL.
 - Papers always have `department_id`.
-- Archive is an orthogonal flag to status.
+- Archive is a visibility toggle independent from requests/permissions.
 
 ---
 
@@ -137,7 +135,6 @@ Notes:
 
 ```typescript
 export type Role = "STUDENT" | "DEPARTMENT_ADMIN" | "SUPER_ADMIN";
-export type PaperStatus = "SUBMITTED" | "APPROVED" | "REJECTED";
 export type RequestStatus = "PENDING" | "ACCEPTED" | "REJECTED";
 
 export interface Department {
@@ -160,9 +157,8 @@ export interface ResearchPaper {
   abstractText: string;
   department: Department;
   submissionDate: string; // ISO date (YYYY-MM-DD)
-  status: PaperStatus;
   fileUrl: string; // API path (gated), e.g. /api/files/uuid.pdf
-  archived: boolean; // NEW
+  archived: boolean; // visibility toggle
   archivedAt?: string | null; // ISO datetime when archived (optional)
 }
 
@@ -270,7 +266,6 @@ ResearchPaper (archived):
   "abstractText": "Feline quantum mechanics.",
   "department": { "departmentId": 2, "departmentName": "Physics" },
   "submissionDate": "2025-09-15",
-  "status": "APPROVED",
   "fileUrl": "/api/files/abcd1234.pdf",
   "archived": true,
   "archivedAt": "2025-10-07T03:10:00Z"
