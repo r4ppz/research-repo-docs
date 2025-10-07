@@ -22,8 +22,8 @@ Status: Canonical — Single source of truth for frontend structure.
 | --------- | --------------------------- | -------------------------------------- |
 | Build     | Vite                        | Fast, modern, zero Webpack yak-shaving |
 | Language  | TypeScript (strict)         | Catch bugs at compile-time             |
-| Framework | React 18                    | Hooks, ecosystem, stability            |
-| Routing   | React Router v6             | Battle-tested                          |
+| Framework | React                       | Hooks, ecosystem, stability            |
+| Routing   | React Router                | Battle-tested                          |
 | HTTP      | Axios                       | Interceptors, timeouts, typed generics |
 | Auth      | Google Identity Services    | Per backend contract                   |
 | Styling   | CSS Modules + CSS Variables | Scoped styles, no runtime tax          |
@@ -554,26 +554,6 @@ export function useDebounce<T>(value: T, delay: number) {
 - CSS Modules per component: `Component.module.css`
 - Global tokens in `styles/variables.css`
 - Import `styles/globals.css` once in `main.tsx`
-
-Example:
-
-```css
-/* components/Button/Button.module.css */
-.button {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  transition: 0.2s ease;
-}
-
-.primary {
-  background: var(--color-primary);
-  color: #fff;
-}
-.primary:hover {
-  background: var(--color-primary-hover);
-}
-```
 
 ---
 
