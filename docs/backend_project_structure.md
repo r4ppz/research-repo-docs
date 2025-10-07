@@ -1,5 +1,7 @@
 # Research Repository — Backend Project Structure (V1)
 
+> Note: Backend devs will have to edit this themselves since im not a backend dev :/
+
 Version: 2025-10-07  
 Audience: Backend devs  
 Status: V1 — First version. Still a developer choice. You may evolve this as you code, but keep domain models and API in sync with main spec.
