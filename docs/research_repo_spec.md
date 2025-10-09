@@ -1,6 +1,6 @@
 # Research Repository — Comprehensive Architecture & Implementation Spec (V1)
 
-Version: 2025-10-07  
+Version: 2025-10-08  
 Audience: Frontend + Backend devs, TLs, stakeholders  
 Status: V1 — First version. If anything in code or API contradicts this, fix the code.
 
@@ -99,7 +99,7 @@ CREATE TABLE research_papers (
   paper_id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   author_name VARCHAR(255) NOT NULL,
-  abstract TEXT NOT NULL,
+  abstract TEXT NOT NULL, -- API field name is abstractText
   file_url VARCHAR(512) NOT NULL,
   department_id INT NOT NULL REFERENCES departments(department_id) ON DELETE CASCADE,
   submission_date DATE NOT NULL,
@@ -177,15 +177,11 @@ export interface DocumentRequest {
 
 See [API Contract](/docs/api_contract.md).
 
-Highlights for archive feature:
+Updates highlighted:
 
-- GET /api/papers — returns only archived=false for everyone by default; admins can filter.
-- GET /api/admin/papers — admin-only view with archived filter.
-- PUT /api/admin/papers/{id}/archive — archive a paper (idempotent).
-- PUT /api/admin/papers/{id}/unarchive — unarchive a paper (idempotent).
-- POST /api/requests — 404 for archived papers.
-- GET /api/users/me/requests — includes archived papers in payload if previously accepted.
-- File download (gated): students with ACCEPTED requests can still download archived papers.
+- GET /api/papers/{id} — students get 404 if archived without ACCEPTED request; 200 if ACCEPTED (archived:true).
+- GET /api/files/{fileIdOrName} — no paperId query param; server derives ownership and enforces authZ.
+- POST /api/admin/papers — returns the full created ResearchPaper (201).
 
 ---
 
@@ -229,16 +225,17 @@ JWT lifetime:
 - 409: Duplicate request (already exists userId+paperId)
 - 413/415 for file upload issues
 
-Error body:
+Error body (canonical):
 
 ```json
-{ "error": "Message", "code": "OPTIONAL_CODE" }
+{ "error": "Message", "code": "OPTIONAL_CODE", "details": [], "traceId": "..." }
 ```
 
 Validation (examples):
 
 - CreatePaper meta: title, authorName, abstractText non-empty; departmentId valid; submissionDate is ISO date and not absurd future
 - Upload: PDF/DOCX only; max size 20MB
+- multipart meta part is application/json
 
 ---
 

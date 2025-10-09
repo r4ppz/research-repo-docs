@@ -1,6 +1,6 @@
 # Research Repository — API Contract (V1 Authoritative)
 
-Version: 2025-10-07  
+Version: 2025-10-08  
 Audience: Backend + Frontend  
 Status: V1 — First version. If backend deviates, fix backend. If frontend deviates, fix frontend.
 
@@ -26,7 +26,8 @@ All endpoints are prefixed with /api. Only /api/auth/\*\* is public; everything 
   }
   ```
 - Authorization header: Authorization: Bearer <jwt>
-- Error model (always this shape):
+- Error model (canonical shape):
+
   ```json
   {
     "error": "Validation failed",
@@ -35,6 +36,9 @@ All endpoints are prefixed with /api. Only /api/auth/\*\* is public; everything 
     "traceId": "optional-correlation-id"
   }
   ```
+
+  - error and code are REQUIRED
+  - details and traceId are OPTIONAL
 
 ---
 
@@ -81,19 +85,23 @@ interface ResearchPaper {
   abstractText: string;
   department: Department;
   submissionDate: string; // YYYY-MM-DD
-  fileUrl: string;
+  fileUrl: string; // e.g., /api/files/<uuid>.pdf (gated)
   archived: boolean;
-  archivedAt?: string | null;
+  archivedAt?: string | null; // ISO datetime
 }
 
 interface DocumentRequest {
   requestId: number;
   status: RequestStatus;
-  requestDate: string;
+  requestDate: string; // ISO datetime
   paper: ResearchPaper;
   requester: User;
 }
 ```
+
+Notes:
+
+- Backend column name may be "abstract"; API field is abstractText.
 
 ---
 
@@ -174,28 +182,30 @@ Query params
 
 - page: integer, default 0
 - size: integer, default 20
-- departmentId: integer (optional)
+- departmentId: integer (optional; all roles may filter)
 - archived: boolean (optional)
   - Omitted → returns only archived=false (active) for all roles
   - If provided:
     - For admin roles: archived=true returns archived; archived=false returns active
-    - For student role: providing archived param is forbidden (403)
+    - For student role: providing archived param is forbidden → 403 FORBIDDEN
 
 Responses
 
 - 200 OK → Page<ResearchPaper>
+- 401 UNAUTHORIZED
+- 403 FORBIDDEN (student with archived param)
 
 ### 4.2 GET /api/papers/{id}
 
 Requires JWT.
 
-Responses
+Responses (authoritative policy)
 
-- 200 OK → ResearchPaper (admins can fetch even if archived)
+- Admins: 200 OK → ResearchPaper (even if archived)
 - Students:
-  - If archived and student has no ACCEPTED request: 404
-  - If student has ACCEPTED request: may return 200 so their Requests page can render; alternatively the Requests endpoint embeds the paper. Pick one consistent policy.
-- 404 NOT_FOUND
+  - If paper.archived=true AND student has NO ACCEPTED request → 404 NOT_FOUND
+  - If student has an ACCEPTED request → 200 OK → ResearchPaper (archived:true)
+- 404 NOT_FOUND (nonexistent)
 
 ---
 
@@ -207,7 +217,7 @@ Requires JWT (STUDENT).
 
 Responses
 
-- 200 OK → DocumentRequest[]
+- 200 OK → DocumentRequest[] (may include archived=true papers if previously accepted)
 - 403 FORBIDDEN
 
 ### 5.2 POST /api/requests
@@ -262,7 +272,7 @@ Responses
 - 400 VALIDATION_ERROR
 - 403 FORBIDDEN
 - 404 NOT_FOUND
-- 409 CONFLICT
+- 409 CONFLICT (already decided)
 
 ---
 
@@ -276,7 +286,7 @@ Content-Type: multipart/form-data
 
 Parts
 
-- meta: text/plain (stringified JSON)
+- meta: application/json (stringified JSON)
   ```json
   {
     "title": "Quantum Cats",
@@ -292,7 +302,17 @@ Responses
 
 - 201 CREATED
   ```json
-  { "paperId": 101 }
+  {
+    "paperId": 101,
+    "title": "Quantum Cats",
+    "authorName": "Jane Doe",
+    "abstractText": "Feline quantum mechanics.",
+    "department": { "departmentId": 2, "departmentName": "Physics" },
+    "submissionDate": "2025-09-15",
+    "fileUrl": "/api/files/abcd1234.pdf",
+    "archived": false,
+    "archivedAt": null
+  }
   ```
 - 400 VALIDATION_ERROR
 - 403 FORBIDDEN
@@ -345,7 +365,7 @@ Request: none
 
 Responses
 
-- 204 NO CONTENT
+- 204 NO CONTENT (idempotent)
 - 403 FORBIDDEN
 - 404 NOT_FOUND
 
@@ -357,7 +377,7 @@ Request: none
 
 Responses
 
-- 204 NO CONTENT
+- 204 NO CONTENT (idempotent)
 - 403 FORBIDDEN
 - 404 NOT_FOUND
 
@@ -380,13 +400,17 @@ Responses
 
 ## 8) Files (gated download/view)
 
-### 8.1 GET /api/files/{filename}?paperId={id}
+### 8.1 GET /api/files/{fileIdOrName}
 
 Requires JWT.
 
 Headers
 
 - Authorization: Bearer <jwt>
+
+Query params
+
+- none
 
 Responses
 
@@ -400,6 +424,8 @@ Authorization matrix
 - DEPARTMENT_ADMIN: allowed if paper.departmentId equals admin.departmentId (active or archived)
 - STUDENT: allowed only if an ACCEPTED DocumentRequest exists for (userId, paperId), even if archived
 
+Server must look up the owning paper by file identifier and enforce the above. No paperId query param is required or used.
+
 ---
 
 ## 9) Validation Rules (key fields)
@@ -412,6 +438,7 @@ Create/Update Paper
 - submissionDate: ISO date (YYYY-MM-DD)
 - departmentId: must exist
 - file (create only): PDF or DOCX; size <= 20MB (configurable)
+- multipart meta part must be application/json
 
 Create Request
 
@@ -437,6 +464,8 @@ Decide Request
 - 415 UNSUPPORTED_MEDIA_TYPE
 - 500 INTERNAL_SERVER_ERROR
 
+All errors use the canonical error shape; details/traceId optional.
+
 ---
 
 ## 11) Security & Auth Flow
@@ -447,6 +476,7 @@ Decide Request
 - Frontend stores JWT (in-memory preferred for MVP) and calls GET /api/users/me to hydrate current user.
 - Every subsequent API call includes Authorization: Bearer <jwt>.
 - Server enforces RBAC and department scoping at service layer.
+- JWT lifetime: ~60 minutes (configurable); re-auth to refresh.
 
 ---
 
@@ -502,7 +532,7 @@ curl -X PUT http://localhost:8080/api/admin/papers/101/unarchive \
 File download (gated; student needs ACCEPTED request)
 
 ```bash
-curl -L "http://localhost:8080/api/files/abcd1234.pdf?paperId=101" \
+curl -L "http://localhost:8080/api/files/abcd1234.pdf" \
   -H "Authorization: Bearer $JWT" --output Quantum_Cats.pdf
 ```
 
