@@ -1,8 +1,8 @@
-# Research Repository — Comprehensive Architecture & Implementation Spec (V1)
+# Research Repository — Comprehensive Architecture & Implementation Spec
 
-Version: 2025-10-08  
-Audience: Frontend + Backend devs, TLs, stakeholders  
-Status: V1 — First version. If anything in code or API contradicts this, fix the code.
+Version: 2025-10-10
+Audience: Frontend + Backend devs
+Status: V3 . If anything in code or API contradicts this, fix the code.
 
 This spec is intentionally blunt and detailed. It is the SINGLE SOURCE OF TRUTH for backend and frontend data design and API contract.  
 All changes must be documented here first, then implemented.
@@ -27,7 +27,9 @@ All changes must be documented here first, then implemented.
   - View paper metadata (non-archived by default)
   - Create document requests (only for non-archived papers)
   - View own requests and download only if request is ACCEPTED
-  - Pages: Library (homepage), Requests (table with Download when accepted)
+  - Pages:
+    - Library (shared homepage): `/`
+    - Student Requests: `/student/requests`
   - Notes: If a paper later becomes archived, their existing ACCEPTED request still allows download; UI should badge “Archived”.
 
 - DEPARTMENT_ADMIN
@@ -35,19 +37,53 @@ All changes must be documented here first, then implemented.
   - View all papers (active and archived, with filters)
   - Approve/reject student requests for their department
   - Manage papers in their department: add (metadata + file), edit (metadata), delete, archive/unarchive
-  - Pages: Library (same as student for active papers), Requests (no download; approve/reject actions), Research (table with tabs/filters for Active vs Archived + CRUD + optional stats)
+  - Pages:
+    - Library (shared homepage): `/`
+    - Department Admin Requests: `/department-admin/requests` (distinct UI/page from student/super admin)
+    - Department Research Admin: `/department-admin/research` (dept-scoped CRUD + Active/Archived tabs)
+  - Notes: Full file access within their department (active or archived).
 
 - SUPER_ADMIN
   - Department: none (department = null)
   - Can do anything a department admin can across all departments
   - Has department filter on admin views
-  - Pages: Library (same), Requests (with department filter), Research (with department and archived filters, optional global stats)
+  - Pages:
+    - Library (shared homepage): `/`
+    - Super Admin Requests: `/super-admin/requests` (global scope + department filter; distinct from student/department admin)
+    - Global Research Admin: `/super-admin/research` (global scope, department + archived filters, optional global stats)
 
 Access rules (server-enforced):
 
 - Students see metadata for active (archived=false) papers by default; new requests only against non-archived papers.
 - Department Admins manage only their department’s requests/papers; full file access for their department, including archived.
 - Super Admins manage and access everything.
+
+### 1.1 Frontend Route Map and Feature Folders (Authoritative)
+
+- Routes (UI contract):
+  - `/` → Library (shared for all roles)
+  - `/student/requests` → Student requests page
+  - `/department-admin/requests` → Department Admin requests page
+  - `/department-admin/research` → Department Admin research admin page
+  - `/super-admin/requests` → Super Admin requests page
+  - `/super-admin/research` → Super Admin research admin page
+
+- Feature-based directory mapping (Frontend):
+
+  ```
+  src/
+    features/
+      homepage/            # shared library homepage
+      student/             # student-only pages (e.g., requests)
+      departmentAdmin/     # dept admin-only pages (requests, research)
+      superAdmin/          # super admin-only pages (requests, research)
+  ```
+
+- Router/gating policy (frontend):
+  - All roles can access `/`.
+  - Role-only pages must be hidden in navigation and guarded by route-level checks.
+  - UI must not rely on visibility alone; unauthorized navigation must redirect to `/` or a dedicated unauthorized page.
+  - Server remains the source of truth for authorization; frontend gating is for UX only.
 
 ---
 
@@ -292,3 +328,5 @@ DocumentRequest (paper archived after acceptance):
   "requester": { "...": "User fields" }
 }
 ```
+
+---

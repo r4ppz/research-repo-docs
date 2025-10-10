@@ -1,8 +1,8 @@
-# Research Repository — API Contract (V1 Authoritative)
+# Research Repository — API Contract (Authoritative)
 
-Version: 2025-10-08  
+Version: 2025-10-10
 Audience: Backend + Frontend  
-Status: V1 — First version. If backend deviates, fix backend. If frontend deviates, fix frontend.
+Status: V3. If backend deviates, fix backend. If frontend deviates, fix frontend.
 
 All payloads are JSON (camelCase) unless explicitly noted.  
 Base URL (dev): http://localhost:8080  
@@ -48,14 +48,21 @@ All endpoints are prefixed with /api. Only /api/auth/\*\* is public; everything 
   - Can read papers metadata (active by default, archived excluded)
   - Can create requests and view own requests
   - Can download files only if their request is ACCEPTED for that paper (even if that paper later becomes archived)
+  - UI routes (non-API): `/` (Library), `/student/requests`
 - DEPARTMENT_ADMIN
   - Has department; can CRUD papers in their department
   - Can view and decide (ACCEPT/REJECT) requests for their department
   - Can archive/unarchive papers in their department
   - Can always download/view files for papers in their department (active or archived)
+  - UI routes (non-API): `/` (Library), `/department-admin/requests`, `/department-admin/research`
 - SUPER_ADMIN
   - No department; can manage everything across all departments
   - Can filter by department via query params where applicable
+  - UI routes (non-API): `/` (Library), `/super-admin/requests`, `/super-admin/research`
+
+Notes:
+
+- UI routes are provided here to make the role gating explicit for the frontend. They are not API endpoints and have no server routing implications. Backend enforces access via JWT and RBAC regardless of UI route structure.
 
 ---
 
@@ -552,4 +559,23 @@ DocumentRequest.status
 
 ---
 
-Build to this contract. If you deviate, document and approve before code changes.
+## 14) Frontend UI Routes (Non-API Appendix; Authoritative for FE)
+
+- Shared Library Homepage (all roles): `/` → feature: `src/features/homepage`
+- Student pages:
+  - Student Requests: `/student/requests` → feature: `src/features/student`
+- Department Admin pages:
+  - Requests (dept-scoped): `/department-admin/requests` → feature: `src/features/departmentAdmin`
+  - Research Admin (dept-scoped CRUD, Active/Archived tabs): `/department-admin/research` → feature: `src/features/departmentAdmin`
+- Super Admin pages:
+  - Requests (global with department filter): `/super-admin/requests` → feature: `src/features/superAdmin`
+  - Research Admin (global with department + archived filters): `/super-admin/research` → feature: `src/features/superAdmin`
+
+Routing requirements (frontend):
+
+- All roles: allow access to `/`.
+- Role-only routes must be guarded; unauthorized users should be redirected to `/` (or `/unauthorized` if implemented).
+- Navigation should not show links to routes outside the current user role.
+- Backend authorization is still enforced regardless of UI route.
+
+---
