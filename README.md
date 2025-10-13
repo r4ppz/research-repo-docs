@@ -1,6 +1,6 @@
-# Research Repository — Documentation Repo
+# Research Repository — Documentation
 
-Documentation for the Research Repository system — a gated school research repository with Google SSO and role-based access control.
+Central documentation for the Research Repository project.
 
 ---
 
@@ -16,4 +16,4 @@ Documentation for the Research Repository system — a gated school research rep
 
 > **Note:** The frontend and backend will be developed in separate repositories. Both projects will start independently, guided by the API contract and specification, and will be integrated later.
 
-_Version: 2025-10-07 · Status: development_
+_Status: development_
