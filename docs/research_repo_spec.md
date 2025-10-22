@@ -1,8 +1,8 @@
 # Research Repository — Comprehensive Architecture & Implementation Spec
 
-Version: 2025-10-10
+Version: 2025-10-22
 Audience: Frontend + Backend devs
-Status: V3 . If anything in code or API contradicts this, fix the code.
+Status: V4 . If anything in code or API contradicts this, fix the code.
 
 This spec is intentionally blunt and detailed. It is the SINGLE SOURCE OF TRUTH for backend and frontend data design and API contract.  
 All changes must be documented here first, then implemented.
@@ -16,7 +16,7 @@ All changes must be documented here first, then implemented.
 - Authorization: JWT with role-based access (Student, Department Admin, Super Admin) + department scoping for admins.
 - Data contract: API returns UI-ready, nested objects (no raw IDs-only in responses).
 - File access: Gated endpoint; admins always allowed; students allowed only if their request is ACCEPTED.
-- Archive feature: Admins can archive/unarchive papers. Archived papers are hidden from Library by default, listed in a separate admin “Archived” view, and blocked from new student requests. Prior accepted student access remains downloadable.
+- Archive feature: Admins can archive/unarchive papers. Archived papers are hidden from Library by default, listed in a separate admin “Archived” view, and blocked from new student requests. Prior accepted student access is no longer downloadable once paper is archived.
 
 ---
 
@@ -26,11 +26,11 @@ All changes must be documented here first, then implemented.
   - Department: none (department = null)
   - View paper metadata (non-archived by default)
   - Create document requests (only for non-archived papers)
-  - View own requests and download only if request is ACCEPTED
+  - View own requests and download only if request is ACCEPTED AND paper is not archived
   - Pages:
     - Library (shared homepage): `/`
     - Student Requests: `/student/requests`
-  - Notes: If a paper later becomes archived, their existing ACCEPTED request still allows download; UI should badge “Archived”.
+  - Notes: If a paper later becomes archived, their existing ACCEPTED request no longer allows download; UI should badge “Archived”.
 
 - DEPARTMENT_ADMIN
   - Has a department (department ≠ null)
@@ -58,32 +58,12 @@ Access rules (server-enforced):
 - Department Admins manage only their department’s requests/papers; full file access for their department, including archived.
 - Super Admins manage and access everything.
 
-### 1.1 Frontend Route Map and Feature Folders (Authoritative)
+### 1.1 Frontend Considerations
 
-- Routes (UI contract):
-  - `/` → Library (shared for all roles)
-  - `/student/requests` → Student requests page
-  - `/department-admin/requests` → Department Admin requests page
-  - `/department-admin/research` → Department Admin research admin page
-  - `/super-admin/requests` → Super Admin requests page
-  - `/super-admin/research` → Super Admin research admin page
-
-- Feature-based directory mapping (Frontend):
-
-  ```
-  src/
-    features/
-      homepage/            # shared library homepage
-      student/             # student-only pages (e.g., requests)
-      departmentAdmin/     # dept admin-only pages (requests, research)
-      superAdmin/          # super admin-only pages (requests, research)
-  ```
-
-- Router/gating policy (frontend):
-  - All roles can access `/`.
-  - Role-only pages must be hidden in navigation and guarded by route-level checks.
-  - UI must not rely on visibility alone; unauthorized navigation must redirect to `/` or a dedicated unauthorized page.
-  - Server remains the source of truth for authorization; frontend gating is for UX only.
+- Common API endpoints for UI filters (usable by all roles):
+  - GET /api/filters/years → for year filtering
+  - GET /api/filters/departments → for department filtering
+  - GET /api/filters/dates → for date range filtering
 
 ---
 
@@ -205,23 +185,85 @@ export interface DocumentRequest {
   paper: ResearchPaper; // nested full object
   requester: User; // nested full object
 }
+
+export interface FilterOptions {
+  years: number[];
+  departments: Department[];
+  dateRange: {
+    minDate: string; // ISO date (YYYY-MM-DD)
+    maxDate: string; // ISO date (YYYY-MM-DD)
+  };
+}
 ```
 
 ---
 
-## 5) API Contract
+## 5) API Endpoints Summary
+
+The system provides a comprehensive REST API with the following core endpoints:
+
+**Authentication:**
+
+- `POST /api/auth/google` - Authenticate using Google ID token
+
+**User:**
+
+- `GET /api/users/me` - Get current user details
+
+**Filter:**
+
+- `GET /api/filters/years` - Get distinct years for filtering
+- `GET /api/filters/departments` - Get all departments for filtering
+- `GET /api/filters/dates` - Get date range for filtering
+
+**Papers:**
+
+- `GET /api/papers` - List papers with pagination and filters
+- `GET /api/papers/{id}` - Get specific paper details
+
+**Student Requests:**
+
+- `GET /api/users/me/requests` - Get own requests
+- `POST /api/requests` - Create new document request
+
+**Admin Requests:**
+
+- `GET /api/admin/requests` - Get requests for admin's department or all (super admin)
+- `PUT /api/admin/requests/{id}` - Approve/reject requests
+
+**Admin Papers:**
+
+- `POST /api/admin/papers` - Create new paper (admin only)
+- `PUT /api/admin/papers/{id}` - Update paper details
+- `DELETE /api/admin/papers/{id}` - Delete paper
+- `PUT /api/admin/papers/{id}/archive` - Archive paper
+- `PUT /api/admin/papers/{id}/unarchive` - Unarchive paper
+- `GET /api/admin/papers` - List admin papers with filters
+
+**Files:**
+
+- `GET /api/files/{fileIdOrName}` - Download gated file content
+
+For detailed API documentation including request/response schemas, error codes, and authorization requirements, see the full [API Contract](/docs/api_contract.md).
+
+---
+
+## 6) API Contract
 
 See [API Contract](/docs/api_contract.md).
 
 Updates highlighted:
 
-- GET /api/papers/{id} — students get 404 if archived without ACCEPTED request; 200 if ACCEPTED (archived:true).
+- GET /api/papers/{id} — students get 404 if paper is archived (regardless of request status).
 - GET /api/files/{fileIdOrName} — no paperId query param; server derives ownership and enforces authZ.
 - POST /api/admin/papers — returns the full created ResearchPaper (201).
+- New filter endpoints: GET /api/filters/years, GET /api/filters/departments, GET /api/filters/dates
+- Updated file access: students can no longer download archived papers even with ACCEPTED requests
+- Added summary API endpoints section to this spec document
 
 ---
 
-## 6) AuthN/AuthZ
+## 7) AuthN/AuthZ
 
 - AuthN: Google Identity Services on frontend; backend verifies ID token:
   - Signature, issuer (accounts.google.com), audience (clientId), expiry
@@ -240,7 +282,7 @@ JWT lifetime:
 
 ---
 
-## 7) Security
+## 8) Security
 
 - HTTPS in all environments beyond local
 - CORS: Allow dev origins only; strict in prod
@@ -252,7 +294,7 @@ JWT lifetime:
 
 ---
 
-## 8) Error & Validation Conventions
+## 9) Error & Validation Conventions
 
 - 400: Validation errors (missing fields, invalid dates)
 - 401: Missing/invalid JWT
@@ -275,7 +317,7 @@ Validation (examples):
 
 ---
 
-## 9) Observability & Logging
+## 10) Observability & Logging
 
 - Log JSON lines with requestId, userId, role, endpoint, status, duration
 - Track:
@@ -287,7 +329,7 @@ Validation (examples):
 
 ---
 
-## 10) Sample JSONs
+## 11) Sample JSONs
 
 ResearchPaper (archived):
 
@@ -317,16 +359,28 @@ User (student):
 }
 ```
 
-DocumentRequest (paper archived after acceptance):
+DocumentRequest (paper archived after acceptance - student no longer has access):
 
 ```json
 {
   "requestId": 1,
   "status": "ACCEPTED",
   "requestDate": "2025-10-01T14:00:00Z",
-  "paper": { "...": "ResearchPaper (archived=true)" },
+  "paper": {
+    "paperId": 101,
+    "title": "Quantum Cats",
+    "authorName": "Jane Doe",
+    "abstractText": "Feline quantum mechanics.",
+    "department": { "departmentId": 2, "departmentName": "Physics" },
+    "submissionDate": "2025-09-15",
+    "fileUrl": "/api/files/abcd1234.pdf",
+    "archived": true,
+    "archivedAt": "2025-10-07T03:10:00Z"
+  },
   "requester": { "...": "User fields" }
 }
 ```
+
+Note: Even though this request is ACCEPTED, the student can no longer access the paper since it's archived.
 
 ---

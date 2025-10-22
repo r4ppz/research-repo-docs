@@ -1,8 +1,8 @@
 # Research Repository — API Contract (Authoritative)
 
-Version: 2025-10-10
+Version: 2025-10-22
 Audience: Backend + Frontend  
-Status: V3. If backend deviates, fix backend. If frontend deviates, fix frontend.
+Status: V4. If backend deviates, fix backend. If frontend deviates, fix frontend.
 
 All payloads are JSON (camelCase) unless explicitly noted.  
 Base URL (dev): http://localhost:8080  
@@ -47,22 +47,15 @@ All endpoints are prefixed with /api. Only /api/auth/\*\* is public; everything 
 - STUDENT
   - Can read papers metadata (active by default, archived excluded)
   - Can create requests and view own requests
-  - Can download files only if their request is ACCEPTED for that paper (even if that paper later becomes archived)
-  - UI routes (non-API): `/` (Library), `/student/requests`
+  - Can download files only if their request is ACCEPTED for that paper AND paper is not archived
 - DEPARTMENT_ADMIN
   - Has department; can CRUD papers in their department
   - Can view and decide (ACCEPT/REJECT) requests for their department
   - Can archive/unarchive papers in their department
   - Can always download/view files for papers in their department (active or archived)
-  - UI routes (non-API): `/` (Library), `/department-admin/requests`, `/department-admin/research`
 - SUPER_ADMIN
   - No department; can manage everything across all departments
   - Can filter by department via query params where applicable
-  - UI routes (non-API): `/` (Library), `/super-admin/requests`, `/super-admin/research`
-
-Notes:
-
-- UI routes are provided here to make the role gating explicit for the frontend. They are not API endpoints and have no server routing implications. Backend enforces access via JWT and RBAC regardless of UI route structure.
 
 ---
 
@@ -105,10 +98,6 @@ interface DocumentRequest {
   requester: User;
 }
 ```
-
-Notes:
-
-- Backend column name may be "abstract"; API field is abstractText.
 
 ---
 
@@ -167,15 +156,38 @@ Responses
 
 ---
 
-## 3) Departments
+## 3) Filters
 
-### 3.1 GET /api/departments
+### 3.1 GET /api/filters/years
 
-Requires JWT.
+Requires JWT. Returns distinct years from research papers submission dates.
+
+Responses
+
+- 200 OK → number[] (e.g., [2021, 2022, 2023, 2024, 2025])
+- 401 UNAUTHORIZED
+
+### 3.2 GET /api/filters/departments
+
+Requires JWT. Returns all available departments.
 
 Responses
 
 - 200 OK → Department[]
+- 401 UNAUTHORIZED
+
+### 3.3 GET /api/filters/dates
+
+Requires JWT. Returns date options for filtering (min/max dates).
+
+Query params
+
+- type: string, optional, values: ["min", "max"], default: both
+
+Responses
+
+- 200 OK → {"minDate": "YYYY-MM-DD", "maxDate": "YYYY-MM-DD"}
+- 401 UNAUTHORIZED
 
 ---
 
@@ -210,8 +222,8 @@ Responses (authoritative policy)
 
 - Admins: 200 OK → ResearchPaper (even if archived)
 - Students:
-  - If paper.archived=true AND student has NO ACCEPTED request → 404 NOT_FOUND
-  - If student has an ACCEPTED request → 200 OK → ResearchPaper (archived:true)
+  - If paper.archived=true → 404 NOT_FOUND (even with ACCEPTED request)
+  - If paper not archived AND student has ACCEPTED request → 200 OK → ResearchPaper
 - 404 NOT_FOUND (nonexistent)
 
 ---
@@ -224,7 +236,7 @@ Requires JWT (STUDENT).
 
 Responses
 
-- 200 OK → DocumentRequest[] (may include archived=true papers if previously accepted)
+- 200 OK → DocumentRequest[] (includes only non-archived papers and requests regardless of status)
 - 403 FORBIDDEN
 
 ### 5.2 POST /api/requests
@@ -429,7 +441,7 @@ Authorization matrix
 
 - SUPER_ADMIN: always allowed
 - DEPARTMENT_ADMIN: allowed if paper.departmentId equals admin.departmentId (active or archived)
-- STUDENT: allowed only if an ACCEPTED DocumentRequest exists for (userId, paperId), even if archived
+- STUDENT: allowed only if an ACCEPTED DocumentRequest exists for (userId, paperId) AND paper is not archived
 
 Server must look up the owning paper by file identifier and enforce the above. No paperId query param is required or used.
 
@@ -556,26 +568,5 @@ DocumentRequest.status
 
 - PENDING → ACCEPTED | REJECTED
 - ACCEPTED/REJECTED → terminal
-
----
-
-## 14) Frontend UI Routes (Non-API Appendix; Authoritative for FE)
-
-- Shared Library Homepage (all roles): `/` → feature: `src/features/homepage`
-- Student pages:
-  - Student Requests: `/student/requests` → feature: `src/features/student`
-- Department Admin pages:
-  - Requests (dept-scoped): `/department-admin/requests` → feature: `src/features/departmentAdmin`
-  - Research Admin (dept-scoped CRUD, Active/Archived tabs): `/department-admin/research` → feature: `src/features/departmentAdmin`
-- Super Admin pages:
-  - Requests (global with department filter): `/super-admin/requests` → feature: `src/features/superAdmin`
-  - Research Admin (global with department + archived filters): `/super-admin/research` → feature: `src/features/superAdmin`
-
-Routing requirements (frontend):
-
-- All roles: allow access to `/`.
-- Role-only routes must be guarded; unauthorized users should be redirected to `/` (or `/unauthorized` if implemented).
-- Navigation should not show links to routes outside the current user role.
-- Backend authorization is still enforced regardless of UI route.
 
 ---
