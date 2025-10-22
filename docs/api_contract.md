@@ -2,7 +2,7 @@
 
 Version: 2025-10-22
 Audience: Backend + Frontend  
-Status: V4. If backend deviates, fix backend. If frontend deviates, fix frontend.
+Status: V5. If backend deviates, fix backend. If frontend deviates, fix frontend.
 
 All payloads are JSON (camelCase) unless explicitly noted.  
 Base URL (dev): http://localhost:8080  
@@ -554,6 +554,61 @@ File download (gated; student needs ACCEPTED request)
 curl -L "http://localhost:8080/api/files/abcd1234.pdf" \
   -H "Authorization: Bearer $JWT" --output Quantum_Cats.pdf
 ```
+
+---
+
+## 12) Statistics & Analytics API
+
+### 12.1 GET /api/admin/stats/requests
+
+Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
+
+Query params
+
+- departmentId: integer (optional; SUPER_ADMIN only)
+
+Responses
+
+- 200 OK
+  ```json
+  {
+    "totalRequests": 150,
+    "pendingRequests": 25,
+    "acceptedRequests": 100,
+    "rejectedRequests": 25
+  }
+  ```
+- 403 FORBIDDEN
+
+Authorization matrix:
+
+- DEPARTMENT_ADMIN: Returns stats for their department only
+- SUPER_ADMIN: Returns global stats, with optional department filter via departmentId param
+
+### 12.2 GET /api/admin/stats/research
+
+Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
+
+Query params
+
+- departmentId: integer (optional; SUPER_ADMIN only)
+
+Responses
+
+- 200 OK
+  ```json
+  {
+    "totalPapers": 85,
+    "activePapers": 70,
+    "archivedPapers": 15
+  }
+  ```
+- 403 FORBIDDEN
+
+Authorization matrix:
+
+- DEPARTMENT_ADMIN: Returns stats for their department only
+- SUPER_ADMIN: Returns global stats, with optional department filter via departmentId param
 
 ---
 

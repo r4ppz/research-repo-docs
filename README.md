@@ -2,9 +2,13 @@
 
 Central documentation for the Research Repository project.
 
+- **Current Status:** Development
+- **Repository Type:** Documentation-only repository for the Research Repository project
+- **Single Source of Truth:** API Contract and Specification documents
+
 ---
 
-## Main Docs
+## Documentation Overview
 
 | Document                                                                      | Description                                                 |
 | ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -16,5 +20,3 @@ Central documentation for the Research Repository project.
 ---
 
 > **Note:** The frontend and backend will be developed in separate repositories. Both projects will start independently, guided by the API contract and specification, and will be integrated later.
-
-_Status: development_

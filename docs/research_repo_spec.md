@@ -2,7 +2,7 @@
 
 Version: 2025-10-22
 Audience: Frontend + Backend devs
-Status: V4 . If anything in code or API contradicts this, fix the code.
+Status: V5 . If anything in code or API contradicts this, fix the code.
 
 This spec is intentionally blunt and detailed. It is the SINGLE SOURCE OF TRUTH for backend and frontend data design and API contract.  
 All changes must be documented here first, then implemented.
@@ -248,18 +248,25 @@ For detailed API documentation including request/response schemas, error codes, 
 
 ---
 
-## 6) API Contract
+## 6) Statistics & Analytics API
 
-See [API Contract](/docs/api_contract.md).
+The system provides statistics endpoints for administrative dashboards:
 
-Updates highlighted:
+**Admin Request Statistics:**
 
-- GET /api/papers/{id} — students get 404 if paper is archived (regardless of request status).
-- GET /api/files/{fileIdOrName} — no paperId query param; server derives ownership and enforces authZ.
-- POST /api/admin/papers — returns the full created ResearchPaper (201).
-- New filter endpoints: GET /api/filters/years, GET /api/filters/departments, GET /api/filters/dates
-- Updated file access: students can no longer download archived papers even with ACCEPTED requests
-- Added summary API endpoints section to this spec document
+- `GET /api/admin/stats/requests` - Get request statistics for admin's scope
+  - Department Admin: Statistics for their department only
+  - Super Admin: Global statistics with optional department filter
+  - Response includes: Total requests, Pending requests, Accepted requests, Rejected requests
+
+**Admin Research Statistics:**
+
+- `GET /api/admin/stats/research` - Get research paper statistics for admin's scope
+  - Department Admin: Statistics for their department only
+  - Super Admin: Global statistics with optional department filter
+  - Response includes: Total papers, Active vs Archived papers
+
+These endpoints are role-scoped similar to other admin endpoints and require appropriate admin privileges.
 
 ---
 
@@ -382,5 +389,3 @@ DocumentRequest (paper archived after acceptance - student no longer has access)
 ```
 
 Note: Even though this request is ACCEPTED, the student can no longer access the paper since it's archived.
-
----
