@@ -2,9 +2,8 @@
 
 Version: 2025-10-22
 Audience: Frontend + Backend devs
-Status: V5 . If anything in code or API contradicts this, fix the code.
 
-This spec is intentionally blunt and detailed. It is the SINGLE SOURCE OF TRUTH for backend and frontend data design and API contract.  
+This spec is intentionally blunt and detailed. It is the SINGLE SOURCE OF TRUTH for backend and frontend data design and API contract.
 All changes must be documented here first, then implemented.
 
 ---

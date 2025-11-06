@@ -10,12 +10,12 @@ Central documentation for the Research Repository project.
 
 ## Documentation Overview
 
-| Document                                                                      | Description                                                 |
-| ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| [Research Repository Specification](./docs/research_repo_spec.md)             | Main system design, roles, and database schema              |
-| [API Contract](./docs/api_contract.md)                                        | Full REST API endpoints and data contracts                  |
-| [Frontend Repository](https://github.com/r4ppz19/research-repository)         | Frontend repository written in TypeScript (React)           |
-| [GitHub Pages (Live Demo)](https://r4ppz.github.io/research-repository/login) | Deployed static frontend. No backend. **Not yet finished.** |
+| Document                                                                 | Description                                                 |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| [Research Repository Specification](./docs/research_repo_spec.md)        | Main system design, roles, and database schema              |
+| [API Contract](./docs/api_contract.md)                                   | Full REST API endpoints and data contracts                  |
+| [Frontend Repository](https://github.com/r4ppz19/research-repository)    | Frontend repository written in TypeScript (React)           |
+| [GitHub Pages (Live Demo)](https://r4ppz.github.io/research-repository/) | Deployed static frontend. No backend. **Not yet finished.** |
 
 ---
 
