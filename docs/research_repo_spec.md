@@ -120,7 +120,7 @@ CREATE TABLE document_requests (
 );
 ```
 
-For the full database migration, see the [Database Schema](/docs/database.md).
+For the full database migration, see the [Database Migration](/docs/database.md).
 
 ---
 
