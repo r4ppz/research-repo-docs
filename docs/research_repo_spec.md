@@ -124,7 +124,7 @@ For the full database migration, see the [Database Migration](/docs/database.md)
 
 ---
 
-## Domain Types (Frontend/Backend)
+## Domain Types (Frontend)
 
 ```typescript
 export type Role = "STUDENT" | "TEACHER" | "DEPARTMENT_ADMIN" | "SUPER_ADMIN";
@@ -221,17 +221,50 @@ For detailed API documentation including request/response schemas, error codes, 
 
 ## AuthN/AuthZ
 
-- Google Identity Services frontend; backend verifies ID token:
-  - Signature, issuer, audience, expiry
-  - Domain enforced: `acdeducation.com`
+- **Authentication (AuthN)**:
+  - Frontend obtains **Google OAuth authorization code** via Google Identity Services.
+  - Backend exchanges the code for tokens:
+    - ID token (JWT)
+    - Access token (for Google APIs if needed, not needed for now)
+  - Backend verifies the **ID token**:
+    - Signature
+    - Issuer (`accounts.google.com`)
+    - Audience (your Google client ID)
+    - Expiry
+    - Domain enforced: must be `acdeducation.com`
 
-- Default role on first login: STUDENT
-- TEACHER and ADMIN emails inserted manually (Flyway migration or backend seed script)
-- JWT includes: `sub`, `email`, `fullName`, `role`, `departmentId`, `iat`, `exp`, `iss`
-- Department scoping enforced in service layer
-- File access enforced by role + request status + archive state
+  - On first login, a new user record is created with default role `STUDENT`.
 
-JWT lifetime: 60 minutes
+- **Manual Role Assignment**:
+  - Teacher and admin emails are inserted manually via:
+    - Flyway migration
+    - OR backend seed script
+
+  - Roles are `DEPARTMENT_ADMIN` (with department) or `SUPER_ADMIN` (no department).
+
+- **JWT Structure**:
+  - **Claims**:
+    - `sub`: `userId` (primary key from users table)
+    - `email`: user email
+    - `fullName`: user full name
+    - `role`: `STUDENT` | `DEPARTMENT_ADMIN` | `SUPER_ADMIN`
+    - `departmentId`: nullable, only for admins
+    - `iat`: issued-at timestamp
+    - `exp`: expiry timestamp
+    - `iss`: issuer, e.g., `"acdeducation-repo-backend"`
+
+  - Lifetime: 60 minutes (configurable)
+  - Backend uses `sub` for all RBAC and department-scoped queries; other claims are for convenience/UI.
+
+- **Authorization (AuthZ)**:
+  - Spring Security + service-layer enforcement.
+  - Department scoping applied for `DEPARTMENT_ADMIN` actions.
+  - File access rules:
+    - `SUPER_ADMIN`: unrestricted
+    - `DEPARTMENT_ADMIN`: full access to papers in their department, including archived
+    - `STUDENT`: access only to non-archived papers with `ACCEPTED` request
+
+  - Never trust frontend; all enforcement occurs on backend.
 
 ---
 
