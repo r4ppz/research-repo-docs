@@ -2,7 +2,7 @@
 
 ## Database Schema (Postgres)
 
-### V1_initial_schema.sql
+### V1\_\_initial_schema.sql
 
 ```sql
 -- ENUMS

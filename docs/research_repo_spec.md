@@ -1,14 +1,11 @@
 # Research Repository — Comprehensive Architecture & Implementation Spec
 
-Version: 2025-10-22
-Audience: Frontend + Backend devs
-
 This spec is intentionally blunt and detailed. It is the SINGLE SOURCE OF TRUTH for backend and frontend data design and API contract.
 All changes must be documented here first, then implemented.
 
 ---
 
-## 0) High-level Summary
+## High-level Summary
 
 - Purpose: A gated school research repository where students can browse paper metadata and request access to full documents; admins manage requests and papers.
 - Authentication: Google SSO (acdeducation.com only).
@@ -19,7 +16,7 @@ All changes must be documented here first, then implemented.
 
 ---
 
-## 1) Roles & Capabilities
+## Roles & Capabilities
 
 - STUDENT
   - Department: none (department = null)
@@ -29,17 +26,17 @@ All changes must be documented here first, then implemented.
   - Pages:
     - Library (shared homepage): `/`
     - Student Requests: `/student/requests`
-  - Notes: If a paper later becomes archived, their existing ACCEPTED request no longer allows download; UI should badge “Archived”.
+  - Notes: If a paper later becomes archived, their existing ACCEPTED request no longer allows download; UI should badge “Archived” or something.
 
 - DEPARTMENT_ADMIN
   - Has a department (department ≠ null)
-  - View all papers (active and archived, with filters)
+  - View all papers (active and archived)
   - Approve/reject student requests for their department
   - Manage papers in their department: add (metadata + file), edit (metadata), delete, archive/unarchive
   - Pages:
     - Library (shared homepage): `/`
-    - Department Admin Requests: `/department-admin/requests` (distinct UI/page from student/super admin)
-    - Department Research Admin: `/department-admin/research` (dept-scoped CRUD + Active/Archived tabs)
+    - Department Admin Requests: `/department-admin/requests`
+    - Department Research Admin: `/department-admin/research`
   - Notes: Full file access within their department (active or archived).
 
 - SUPER_ADMIN
@@ -48,8 +45,8 @@ All changes must be documented here first, then implemented.
   - Has department filter on admin views
   - Pages:
     - Library (shared homepage): `/`
-    - Super Admin Requests: `/super-admin/requests` (global scope + department filter; distinct from student/department admin)
-    - Global Research Admin: `/super-admin/research` (global scope, department + archived filters, optional global stats)
+    - Super Admin Requests: `/super-admin/requests`
+    - Global Research Admin: `/super-admin/research`
 
 Access rules (server-enforced):
 
@@ -57,7 +54,7 @@ Access rules (server-enforced):
 - Department Admins manage only their department’s requests/papers; full file access for their department, including archived.
 - Super Admins manage and access everything.
 
-### 1.1 Frontend Considerations
+### Frontend Considerations
 
 - Common API endpoints for UI filters (usable by all roles):
   - GET /api/filters/years → for year filtering
@@ -66,7 +63,7 @@ Access rules (server-enforced):
 
 ---
 
-## 2) Tech Stack
+## Tech Stack
 
 - Frontend:
   - Vite, TypeScript, React
@@ -77,21 +74,58 @@ Access rules (server-enforced):
   - Java 21, Spring Boot 3
   - Spring Web, Security, Data JPA, Validation
   - PostgreSQL + Flyway
-  - JWT (jjwt)
-  - Google ID Token verification (google-auth-library-oauth2-http)
-  - springdoc-openapi for Swagger
-- Dev/Infra:
-  - Docker Compose (Postgres)
-  - .editorconfig, ESLint/Prettier (frontend)
-  - CI-friendly
+  - JWT
+  - Google ID Token verification
+  - springdoc-openapi for Swagger (later)
+  - Docker (later)
 
-## 3) Database Schema
+## Database Schema
 
-For the canonical database schema, see the [Database Schema](/docs/database.md).
+```sql
+CREATE TABLE departments (
+    department_id SERIAL PRIMARY KEY,
+    department_name VARCHAR(64) UNIQUE NOT NULL
+);
+
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    role user_role NOT NULL DEFAULT 'STUDENT',
+    department_id INT NULL REFERENCES departments(department_id) ON DELETE SET NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE research_papers (
+    paper_id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    author_name VARCHAR(255) NOT NULL,
+    abstract_text TEXT NOT NULL,
+    file_url VARCHAR(512) NOT NULL,
+    department_id INT NOT NULL REFERENCES departments(department_id) ON DELETE RESTRICT,
+    submission_date DATE NOT NULL,
+    archived BOOLEAN NOT NULL DEFAULT FALSE,
+    archived_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE document_requests (
+    request_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    paper_id INT NOT NULL REFERENCES research_papers(paper_id) ON DELETE CASCADE,
+    request_date TIMESTAMP NOT NULL DEFAULT now(),
+    status request_status NOT NULL DEFAULT 'PENDING',
+    UNIQUE(user_id, paper_id)
+);
+```
+
+For the full database migration, see the [Database Schema](/docs/database.md).
 
 ---
 
-## 4) Domain Types (Authoritative, for API and frontend)
+## Domain Types (for API and frontend)
 
 ```typescript
 export type Role = "STUDENT" | "DEPARTMENT_ADMIN" | "SUPER_ADMIN";
@@ -134,15 +168,15 @@ export interface FilterOptions {
   years: number[];
   departments: Department[];
   dateRange: {
-    minDate: string; // ISO date (YYYY-MM-DD)
-    maxDate: string; // ISO date (YYYY-MM-DD)
+    minDate: string;
+    maxDate: string;
   };
 }
 ```
 
 ---
 
-## 5) API Endpoints Summary
+## API Endpoints Summary
 
 The system provides a comprehensive REST API with the following core endpoints:
 
@@ -192,7 +226,7 @@ For detailed API documentation including request/response schemas, error codes, 
 
 ---
 
-## 6) Statistics & Analytics API
+## Statistics & Analytics API
 
 The system provides statistics endpoints for administrative dashboards:
 
@@ -214,7 +248,7 @@ These endpoints are role-scoped similar to other admin endpoints and require app
 
 ---
 
-## 7) AuthN/AuthZ
+## AuthN/AuthZ
 
 - AuthN: Google Identity Services on frontend; backend verifies ID token:
   - Signature, issuer (accounts.google.com), audience (clientId), expiry
@@ -233,7 +267,7 @@ JWT lifetime:
 
 ---
 
-## 8) Security
+## Security
 
 - HTTPS in all environments beyond local
 - CORS: Allow dev origins only; strict in prod
@@ -245,7 +279,7 @@ JWT lifetime:
 
 ---
 
-## 9) Error & Validation Conventions
+## Error & Validation Conventions
 
 - 400: Validation errors (missing fields, invalid dates)
 - 401: Missing/invalid JWT
@@ -259,24 +293,3 @@ Error body (canonical):
 ```json
 { "error": "Message", "code": "OPTIONAL_CODE", "details": [], "traceId": "..." }
 ```
-
-Validation (examples):
-
-- CreatePaper meta: title, authorName, abstractText non-empty; departmentId valid; submissionDate is ISO date and not absurd future
-- Upload: PDF/DOCX only; max size 20MB
-- multipart meta part is application/json
-
----
-
-## 10) Observability & Logging
-
-- Log JSON lines with requestId, userId, role, endpoint, status, duration
-- Track:
-  - Auth successes/failures
-  - Request creations and decisions
-  - File download attempts (allowed/denied)
-  - Archive/unarchive actions (paperId, adminId, timestamp)
-- Metrics (later): latency percentiles, error rates, DB pool, queue depths
-
----
-

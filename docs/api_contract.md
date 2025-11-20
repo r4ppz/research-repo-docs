@@ -1,11 +1,7 @@
 # Research Repository — API Contract (Authoritative)
 
-Version: 2025-10-22
-Audience: Backend + Frontend
-Status: V5. If backend deviates, fix backend. If frontend deviates, fix frontend.
-
-All payloads are JSON (camelCase) unless explicitly noted.
-Base URL (dev): http://localhost:8080
+All payloads are JSON (camelCase)
+Base URL (dev for now): http://localhost:8080
 All endpoints are prefixed with /api. Only /api/auth/\*\* is public; everything else requires JWT.
 
 ---
@@ -47,13 +43,14 @@ All endpoints are prefixed with /api. Only /api/auth/\*\* is public; everything 
 - STUDENT
   - Can read papers metadata (active by default, archived excluded)
   - Can create requests and view own requests
-  - Can download files only if their request is ACCEPTED for that paper AND paper is not archived
+  - Can download/read files only if their request is ACCEPTED for that paper AND paper is not archived
 - DEPARTMENT_ADMIN
   - Has department; can CRUD papers in their department
   - Can view and decide (ACCEPT/REJECT) requests for their department
   - Can archive/unarchive papers in their department
-  - Can always download/view files for papers in their department (active or archived)
+  - Can always download/view/read files for papers in their department (active or archived)
 - SUPER_ADMIN
+  - Basically the same as DEPARTMENT_ADMIN but;
   - No department; can manage everything across all departments
   - Can filter by department via query params where applicable
 
@@ -101,16 +98,16 @@ interface DocumentRequest {
 
 ---
 
-## 1) Authentication
+## Authentication
 
-### 1.1 POST /api/auth/google
+### POST /api/auth/google
 
 Public. Exchanges a Google ID token for our JWT and returns the current user.
 
 Request
 
 ```json
-{ "token": "GOOGLE_ID_TOKEN" }
+{ "code": "OAuthCode" }
 ```
 
 Responses
@@ -143,9 +140,9 @@ Notes
 
 ---
 
-## 2) User
+## User
 
-### 2.1 GET /api/users/me
+### GET /api/users/me
 
 Requires JWT.
 
@@ -156,9 +153,9 @@ Responses
 
 ---
 
-## 3) Filters
+## Filters
 
-### 3.1 GET /api/filters/years
+### GET /api/filters/years
 
 Requires JWT. Returns distinct years from research papers submission dates.
 
@@ -167,7 +164,7 @@ Responses
 - 200 OK → number[] (e.g., [2021, 2022, 2023, 2024, 2025])
 - 401 UNAUTHORIZED
 
-### 3.2 GET /api/filters/departments
+### GET /api/filters/departments
 
 Requires JWT. Returns all available departments.
 
@@ -176,7 +173,7 @@ Responses
 - 200 OK → Department[]
 - 401 UNAUTHORIZED
 
-### 3.3 GET /api/filters/dates
+### GET /api/filters/dates
 
 Requires JWT. Returns date options for filtering (min/max dates).
 
@@ -191,9 +188,9 @@ Responses
 
 ---
 
-## 4) Papers
+## Papers
 
-### 4.1 GET /api/papers
+### GET /api/papers
 
 Requires JWT. Lists papers with pagination and optional filter.
 
@@ -214,7 +211,7 @@ Responses
 - 401 UNAUTHORIZED
 - 403 FORBIDDEN (student with archived param)
 
-### 4.2 GET /api/papers/{id}
+### GET /api/papers/{id}
 
 Requires JWT.
 
@@ -228,9 +225,9 @@ Responses (authoritative policy)
 
 ---
 
-## 5) Student Requests
+## Student Requests
 
-### 5.1 GET /api/users/me/requests
+### GET /api/users/me/requests
 
 Requires JWT (STUDENT).
 
@@ -239,7 +236,7 @@ Responses
 - 200 OK → DocumentRequest[] (includes only non-archived papers and requests regardless of status)
 - 403 FORBIDDEN
 
-### 5.2 POST /api/requests
+### POST /api/requests
 
 Requires JWT (STUDENT).
 
@@ -261,9 +258,9 @@ Responses
 
 ---
 
-## 6) Admin Requests
+## Admin Requests
 
-### 6.1 GET /api/admin/requests
+### GET /api/admin/requests
 
 Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
 
@@ -275,7 +272,7 @@ Responses
 
 - 200 OK → DocumentRequest[]
 
-### 6.2 PUT /api/admin/requests/{id}
+### PUT /api/admin/requests/{id}
 
 Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
 
@@ -295,9 +292,9 @@ Responses
 
 ---
 
-## 7) Admin Papers (CRUD + Archive)
+## Admin Papers (CRUD + Archive)
 
-### 7.1 POST /api/admin/papers
+### POST /api/admin/papers
 
 Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
 
@@ -343,7 +340,7 @@ Server behavior
 - archived defaults to false
 - Stores file, generates fileUrl (e.g., /api/files/<uuid>.pdf)
 
-### 7.2 PUT /api/admin/papers/{id}
+### PUT /api/admin/papers/{id}
 
 Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
 
@@ -366,7 +363,7 @@ Responses
 - 403 FORBIDDEN
 - 404 NOT_FOUND
 
-### 7.3 DELETE /api/admin/papers/{id}
+### DELETE /api/admin/papers/{id}
 
 Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
 
@@ -376,7 +373,7 @@ Responses
 - 403 FORBIDDEN
 - 404 NOT_FOUND
 
-### 7.4 PUT /api/admin/papers/{id}/archive
+### PUT /api/admin/papers/{id}/archive
 
 Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
 
@@ -388,7 +385,7 @@ Responses
 - 403 FORBIDDEN
 - 404 NOT_FOUND
 
-### 7.5 PUT /api/admin/papers/{id}/unarchive
+### PUT /api/admin/papers/{id}/unarchive
 
 Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
 
@@ -417,9 +414,9 @@ Responses
 
 ---
 
-## 8) Files (gated download/view)
+## Files (gated download/view)
 
-### 8.1 GET /api/files/{fileIdOrName}
+### GET /api/files/{fileIdOrName}
 
 Requires JWT.
 
@@ -447,7 +444,7 @@ Server must look up the owning paper by file identifier and enforce the above. N
 
 ---
 
-## 9) Validation Rules (key fields)
+## Validation Rules (key fields)
 
 Create/Update Paper
 
@@ -472,7 +469,7 @@ Decide Request
 
 ---
 
-## 10) Error Responses
+## Error Responses
 
 - 400 VALIDATION_ERROR
 - 401 UNAUTHORIZED
@@ -487,7 +484,7 @@ All errors use the canonical error shape; details/traceId optional.
 
 ---
 
-## 11) Security & Auth Flow
+## Security & Auth Flow
 
 - Frontend obtains Google credential (ID token) via Google Identity Services.
 - Frontend POSTs /api/auth/google { token }.
@@ -499,67 +496,9 @@ All errors use the canonical error shape; details/traceId optional.
 
 ---
 
-## 12) cURL Examples (developer sanity)
+## Statistics & Analytics API
 
-Login (exchange Google token)
-
-```bash
-curl -X POST http://localhost:8080/api/auth/google \
-  -H "Content-Type: application/json" \
-  -d '{ "token": "GOOGLE_ID_TOKEN" }'
-```
-
-Get current user
-
-```bash
-curl http://localhost:8080/api/users/me \
-  -H "Authorization: Bearer $JWT"
-```
-
-List active papers
-
-```bash
-curl "http://localhost:8080/api/papers?page=0&size=20&departmentId=2" \
-  -H "Authorization: Bearer $JWT"
-```
-
-Admin: list archived papers
-
-```bash
-curl "http://localhost:8080/api/admin/papers?archived=true&page=0&size=20&departmentId=2" \
-  -H "Authorization: Bearer $JWT"
-```
-
-Create student request (will fail if paper archived)
-
-```bash
-curl -X POST http://localhost:8080/api/requests \
-  -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" \
-  -d '{ "paperId": 101 }'
-```
-
-Admin: archive and unarchive paper
-
-```bash
-curl -X PUT http://localhost:8080/api/admin/papers/101/archive \
-  -H "Authorization: Bearer $JWT"
-
-curl -X PUT http://localhost:8080/api/admin/papers/101/unarchive \
-  -H "Authorization: Bearer $JWT"
-```
-
-File download (gated; student needs ACCEPTED request)
-
-```bash
-curl -L "http://localhost:8080/api/files/abcd1234.pdf" \
-  -H "Authorization: Bearer $JWT" --output Quantum_Cats.pdf
-```
-
----
-
-## 12) Statistics & Analytics API
-
-### 12.1 GET /api/admin/stats/requests
+### GET /api/admin/stats/requests
 
 Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
 
@@ -585,7 +524,7 @@ Authorization matrix:
 - DEPARTMENT_ADMIN: Returns stats for their department only
 - SUPER_ADMIN: Returns global stats, with optional department filter via departmentId param
 
-### 12.2 GET /api/admin/stats/research
+### /api/admin/stats/research
 
 Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
 
@@ -612,7 +551,7 @@ Authorization matrix:
 
 ---
 
-## 13) State Machines (for clarity)
+## State Machines (for clarity)
 
 Paper.archived
 
@@ -623,59 +562,3 @@ DocumentRequest.status
 
 - PENDING → ACCEPTED | REJECTED
 - ACCEPTED/REJECTED → terminal
-
----
-
-## 14) Sample JSONs
-
-ResearchPaper (archived):
-
-```json
-{
-  "paperId": 101,
-  "title": "Quantum Cats",
-  "authorName": "Jane Doe",
-  "abstractText": "Feline quantum mechanics.",
-  "department": { "departmentId": 2, "departmentName": "Physics" },
-  "submissionDate": "2025-09-15",
-  "fileUrl": "/api/files/abcd1234.pdf",
-  "archived": true,
-  "archivedAt": "2025-10-07T03:10:00Z"
-}
-```
-
-User (student):
-
-```json
-{
-  "userId": 1,
-  "email": "alice@acdeducation.com",
-  "fullName": "Alice Student",
-  "role": "STUDENT",
-  "department": null
-}
-```
-
-DocumentRequest (paper archived after acceptance - student no longer has access):
-
-```json
-{
-  "requestId": 1,
-  "status": "ACCEPTED",
-  "requestDate": "2025-10-01T14:00:00Z",
-  "paper": {
-    "paperId": 101,
-    "title": "Quantum Cats",
-    "authorName": "Jane Doe",
-    "abstractText": "Feline quantum mechanics.",
-    "department": { "departmentId": 2, "departmentName": "Physics" },
-    "submissionDate": "2025-09-15",
-    "fileUrl": "/api/files/abcd1234.pdf",
-    "archived": true,
-    "archivedAt": "2025-10-07T03:10:00Z"
-  },
-  "requester": { "...": "User fields" }
-}
-```
-
-Note: Even though this request is ACCEPTED, the student can no longer access the paper since it's archived.
