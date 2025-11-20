@@ -1,65 +1,56 @@
 # Research Repository — API Contract (Authoritative)
 
-All payloads are JSON (camelCase)
-Base URL (dev for now): http://localhost:8080
-All endpoints are prefixed with /api. Only /api/auth/\*\* is public; everything else requires JWT.
+**Base URL:** `http://localhost:8080` (dev)
+**All endpoints:** prefixed with `/api`. Only `/api/auth/**` is public; everything else requires JWT.
 
 ---
 
 ## Conventions
 
-- Content-Type: application/json unless multipart/form-data for uploads or file/binary download.
-- Timestamps: ISO 8601 UTC, e.g., 2025-10-01T14:00:00Z
-- Dates (no time): YYYY-MM-DD, e.g., 2025-09-15
-- Pagination response:
-  ```json
-  {
-    "content": [ ... ],
-    "totalElements": 123,
-    "totalPages": 7,
-    "number": 0,
-    "size": 20
-  }
-  ```
-- Authorization header: Authorization: Bearer <jwt>
-- Error model (canonical shape):
+- **Content-Type:** `application/json` unless `multipart/form-data` for uploads or file/binary download.
+- **Timestamps:** ISO 8601 UTC, e.g., `2025-10-01T14:00:00Z`
+- **Dates:** `YYYY-MM-DD`, e.g., `2025-09-15`
+- **Pagination Response:**
 
-  ```json
-  {
-    "error": "Validation failed",
-    "code": "VALIDATION_ERROR",
-    "details": [{ "field": "title", "message": "must not be blank" }],
-    "traceId": "optional-correlation-id"
-  }
-  ```
+```json
+{
+  "content": [ ... ],
+  "totalElements": 123,
+  "totalPages": 7,
+  "number": 0,
+  "size": 20
+}
+```
 
-  - error and code are REQUIRED
-  - details and traceId are OPTIONAL
+- **Authorization header:** `Authorization: Bearer <jwt>`
+- **Error model (canonical):**
 
----
-
-## Roles and Access Rules (server-enforced)
-
-- STUDENT
-  - Can read papers metadata (active by default, archived excluded)
-  - Can create requests and view own requests
-  - Can download/read files only if their request is ACCEPTED for that paper AND paper is not archived
-- DEPARTMENT_ADMIN
-  - Has department; can CRUD papers in their department
-  - Can view and decide (ACCEPT/REJECT) requests for their department
-  - Can archive/unarchive papers in their department
-  - Can always download/view/read files for papers in their department (active or archived)
-- SUPER_ADMIN
-  - Basically the same as DEPARTMENT_ADMIN but;
-  - No department; can manage everything across all departments
-  - Can filter by department via query params where applicable
+```json
+{
+  "error": "Validation failed",
+  "code": "VALIDATION_ERROR",
+  "details": [{ "field": "title", "message": "must not be blank" }],
+  "traceId": "optional-correlation-id"
+}
+```
 
 ---
 
-## Domain Types (API payloads)
+## Roles and Access Rules
+
+| Role             | Paper Metadata             | Download/View                                   | CRUD | Request Approval | Archived Behavior                     |
+| ---------------- | -------------------------- | ----------------------------------------------- | ---- | ---------------- | ------------------------------------- |
+| STUDENT          | Active papers only         | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Cannot access archived                |
+| TEACHER          | All papers (metadata only) | ❌                                              | ❌   | ❌               | Sees metadata for archived            |
+| DEPARTMENT_ADMIN | Papers in their department | Full access (active + archived)                 | ✅   | ✅               | Can archive/unarchive papers          |
+| SUPER_ADMIN      | All papers                 | Full access                                     | ✅   | ✅               | Can archive/unarchive papers globally |
+
+---
+
+## Domain Types
 
 ```ts
-type Role = "STUDENT" | "DEPARTMENT_ADMIN" | "SUPER_ADMIN";
+type Role = "STUDENT" | "TEACHER" | "DEPARTMENT_ADMIN" | "SUPER_ADMIN";
 type RequestStatus = "PENDING" | "ACCEPTED" | "REJECTED";
 
 interface Department {
@@ -82,15 +73,15 @@ interface ResearchPaper {
   abstractText: string;
   department: Department;
   submissionDate: string; // YYYY-MM-DD
-  fileUrl: string; // e.g., /api/files/<uuid>.pdf (gated)
+  fileUrl: string; // e.g., /api/files/<uuid>.pdf
   archived: boolean;
-  archivedAt?: string | null; // ISO datetime
+  archivedAt?: string | null;
 }
 
 interface DocumentRequest {
   requestId: number;
   status: RequestStatus;
-  requestDate: string; // ISO datetime
+  requestDate: string;
   paper: ResearchPaper;
   requester: User;
 }
@@ -102,89 +93,64 @@ interface DocumentRequest {
 
 ### POST /api/auth/google
 
-Public. Exchanges a Google ID token for our JWT and returns the current user.
+- **Public.** Exchanges Google ID token for JWT.
 
-Request
+Request:
 
 ```json
 { "code": "OAuthCode" }
 ```
 
-Responses
+Responses:
 
-- 200 OK
-  ```json
-  {
-    "jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "user": {
-      "userId": 1,
-      "email": "alice@acdeducation.com",
-      "fullName": "Alice Student",
-      "role": "STUDENT",
-      "department": null
-    }
+- **200 OK**
+
+```json
+{
+  "jwt": "<token>",
+  "user": {
+    "userId": 1,
+    "email": "alice@acdeducation.com",
+    "fullName": "Alice Student",
+    "role": "STUDENT",
+    "department": null
   }
-  ```
-- 400 INVALID_TOKEN
-  ```json
-  { "error": "Invalid Google token", "code": "INVALID_TOKEN" }
-  ```
-- 403 DOMAIN_NOT_ALLOWED
-  ```json
-  { "error": "Email domain not allowed", "code": "DOMAIN_NOT_ALLOWED" }
-  ```
+}
+```
 
-Notes
+- **400 INVALID_TOKEN**
 
-- Backend must verify signature, audience (clientId), issuer, expiry, and enforce acdeducation.com domain.
+```json
+{ "error": "Invalid Google token", "code": "INVALID_TOKEN" }
+```
+
+- **403 DOMAIN_NOT_ALLOWED**
+
+```json
+{ "error": "Email domain not allowed", "code": "DOMAIN_NOT_ALLOWED" }
+```
+
+Notes: Backend must validate Google token and enforce `acdeducation.com`.
 
 ---
 
-## User
+## Users
 
 ### GET /api/users/me
 
-Requires JWT.
-
-Responses
-
-- 200 OK → User
-- 401 UNAUTHORIZED
+- Requires JWT
+- Returns User object
+- 401 if no JWT
 
 ---
 
 ## Filters
 
-### GET /api/filters/years
+- `GET /api/filters/years` → number[]
+- `GET /api/filters/departments` → Department[]
+- `GET /api/filters/dates` → `{ minDate: string, maxDate: string }`
 
-Requires JWT. Returns distinct years from research papers submission dates.
-
-Responses
-
-- 200 OK → number[] (e.g., [2021, 2022, 2023, 2024, 2025])
-- 401 UNAUTHORIZED
-
-### GET /api/filters/departments
-
-Requires JWT. Returns all available departments.
-
-Responses
-
-- 200 OK → Department[]
-- 401 UNAUTHORIZED
-
-### GET /api/filters/dates
-
-Requires JWT. Returns date options for filtering (min/max dates).
-
-Query params
-
-- type: string, optional, values: ["min", "max"], default: both
-
-Responses
-
-- 200 OK → {"minDate": "YYYY-MM-DD", "maxDate": "YYYY-MM-DD"}
-- 401 UNAUTHORIZED
+All require JWT. Students cannot filter by archived.
 
 ---
 
@@ -192,36 +158,21 @@ Responses
 
 ### GET /api/papers
 
-Requires JWT. Lists papers with pagination and optional filter.
-
-Query params
-
-- page: integer, default 0
-- size: integer, default 20
-- departmentId: integer (optional; all roles may filter)
-- archived: boolean (optional)
-  - Omitted → returns only archived=false (active) for all roles
-  - If provided:
-    - For admin roles: archived=true returns archived; archived=false returns active
-    - For student role: providing archived param is forbidden → 403 FORBIDDEN
-
-Responses
-
-- 200 OK → Page<ResearchPaper>
-- 401 UNAUTHORIZED
-- 403 FORBIDDEN (student with archived param)
+- JWT required
+- Query params: `page`, `size`, `departmentId` (optional), `archived` (optional)
+- **Student**: cannot use `archived` param → 403
+- **Admin**: can filter by department and archived
+- Response: paginated `ResearchPaper[]`
 
 ### GET /api/papers/{id}
 
-Requires JWT.
+- Admin: always 200 if exists
+- Student:
+  - Archived → 404
+  - Active + ACCEPTED request → 200
+  - Active + no request/denied → 404
 
-Responses (authoritative policy)
-
-- Admins: 200 OK → ResearchPaper (even if archived)
-- Students:
-  - If paper.archived=true → 404 NOT_FOUND (even with ACCEPTED request)
-  - If paper not archived AND student has ACCEPTED request → 200 OK → ResearchPaper
-- 404 NOT_FOUND (nonexistent)
+- Teacher: 200 metadata only
 
 ---
 
@@ -229,32 +180,15 @@ Responses (authoritative policy)
 
 ### GET /api/users/me/requests
 
-Requires JWT (STUDENT).
-
-Responses
-
-- 200 OK → DocumentRequest[] (includes only non-archived papers and requests regardless of status)
-- 403 FORBIDDEN
+- Returns all own requests for non-archived papers
+- Teachers cannot use → 403
 
 ### POST /api/requests
 
-Requires JWT (STUDENT).
-
-Request
-
-```json
-{ "paperId": 101 }
-```
-
-Responses
-
-- 201 CREATED
-  ```json
-  { "requestId": 555 }
-  ```
-- 400 VALIDATION_ERROR
-- 404 NOT_FOUND (paper doesn’t exist OR paper is archived)
-- 409 CONFLICT (duplicate for this user+paper)
+- Create new request
+- Paper must exist and not be archived
+- Duplicate → 409
+- Response: `{ "requestId": number }`
 
 ---
 
@@ -262,214 +196,67 @@ Responses
 
 ### GET /api/admin/requests
 
-Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
-
-Query params
-
-- departmentId: integer (optional; SUPER_ADMIN only)
-
-Responses
-
-- 200 OK → DocumentRequest[]
+- JWT required (DEPARTMENT_ADMIN / SUPER_ADMIN)
+- `departmentId` optional for SUPER_ADMIN
+- Returns `DocumentRequest[]` scoped to department
 
 ### PUT /api/admin/requests/{id}
 
-Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
-
-Request
-
-```json
-{ "action": "accept" } // or "reject"
-```
-
-Responses
-
-- 204 NO CONTENT
-- 400 VALIDATION_ERROR
-- 403 FORBIDDEN
-- 404 NOT_FOUND
-- 409 CONFLICT (already decided)
+- Body: `{ "action": "accept" | "reject" }`
+- Must be PENDING
+- Response: 204
 
 ---
 
-## Admin Papers (CRUD + Archive)
+## Admin Papers
 
-### POST /api/admin/papers
+- POST: create (multipart: `meta` JSON + `file`)
+- PUT: update fields
+- DELETE: delete
+- PUT /archive and /unarchive: idempotent
+- GET: list with filters + pagination
 
-Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
+Server enforces:
 
-Content-Type: multipart/form-data
-
-Parts
-
-- meta: application/json (stringified JSON)
-  ```json
-  {
-    "title": "Quantum Cats",
-    "authorName": "Jane Doe",
-    "abstractText": "Feline quantum mechanics.",
-    "departmentId": 2,
-    "submissionDate": "2025-09-15"
-  }
-  ```
-- file: application/pdf (or docx)
-
-Responses
-
-- 201 CREATED
-  ```json
-  {
-    "paperId": 101,
-    "title": "Quantum Cats",
-    "authorName": "Jane Doe",
-    "abstractText": "Feline quantum mechanics.",
-    "department": { "departmentId": 2, "departmentName": "Physics" },
-    "submissionDate": "2025-09-15",
-    "fileUrl": "/api/files/abcd1234.pdf",
-    "archived": false,
-    "archivedAt": null
-  }
-  ```
-- 400 VALIDATION_ERROR
-- 403 FORBIDDEN
-- 415 UNSUPPORTED_MEDIA_TYPE
-- 413 PAYLOAD_TOO_LARGE
-
-Server behavior
-
-- archived defaults to false
-- Stores file, generates fileUrl (e.g., /api/files/<uuid>.pdf)
-
-### PUT /api/admin/papers/{id}
-
-Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
-
-Request (JSON, all fields optional)
-
-```json
-{
-  "title": "New Title",
-  "authorName": "Jane Doe",
-  "abstractText": "Updated abstract",
-  "departmentId": 3,
-  "submissionDate": "2025-09-20"
-}
-```
-
-Responses
-
-- 200 OK → updated ResearchPaper
-- 400 VALIDATION_ERROR
-- 403 FORBIDDEN
-- 404 NOT_FOUND
-
-### DELETE /api/admin/papers/{id}
-
-Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
-
-Responses
-
-- 204 NO CONTENT
-- 403 FORBIDDEN
-- 404 NOT_FOUND
-
-### PUT /api/admin/papers/{id}/archive
-
-Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
-
-Request: none
-
-Responses
-
-- 204 NO CONTENT (idempotent)
-- 403 FORBIDDEN
-- 404 NOT_FOUND
-
-### PUT /api/admin/papers/{id}/unarchive
-
-Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
-
-Request: none
-
-Responses
-
-- 204 NO CONTENT (idempotent)
-- 403 FORBIDDEN
-- 404 NOT_FOUND
-
-### 7.6 GET /api/admin/papers
-
-Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
-
-Query params
-
-- page: integer, default 0
-- size: integer, default 20
-- departmentId: integer (optional; SUPER_ADMIN only)
-- archived: boolean, default false
-
-Responses
-
-- 200 OK → Page<ResearchPaper>
+- DEPARTMENT_ADMIN: department scope
+- SUPER_ADMIN: global
 
 ---
 
-## Files (gated download/view)
+## Files
 
 ### GET /api/files/{fileIdOrName}
 
-Requires JWT.
+- JWT required
+- Authorization matrix:
+  - SUPER_ADMIN → always
+  - DEPARTMENT_ADMIN → allowed if paper in department
+  - STUDENT → allowed only if ACCEPTED request and paper not archived
+  - TEACHER → ❌
 
-Headers
-
-- Authorization: Bearer <jwt>
-
-Query params
-
-- none
-
-Responses
-
-- 200 OK (binary)
-- 403 FORBIDDEN
-- 404 NOT_FOUND
-
-Authorization matrix
-
-- SUPER_ADMIN: always allowed
-- DEPARTMENT_ADMIN: allowed if paper.departmentId equals admin.departmentId (active or archived)
-- STUDENT: allowed only if an ACCEPTED DocumentRequest exists for (userId, paperId) AND paper is not archived
-
-Server must look up the owning paper by file identifier and enforce the above. No paperId query param is required or used.
+- Returns binary, 403 or 404 otherwise
 
 ---
 
-## Validation Rules (key fields)
+## Validation Rules
 
-Create/Update Paper
+**Paper Create/Update**
 
-- title: non-empty, max 255
-- authorName: non-empty, max 255
+- title, authorName: non-empty, ≤255
 - abstractText: non-empty
-- submissionDate: ISO date (YYYY-MM-DD)
+- submissionDate: valid ISO date
 - departmentId: must exist
-- file (create only): PDF or DOCX; size <= 20MB (configurable)
-- multipart meta part must be application/json
+- file: PDF or DOCX ≤20MB
 
-Create Request
+**DocumentRequest**
 
-- paperId: must exist
-- paper must be archived=false (else 404)
-- Unique (userId, paperId) — duplicate → 409
-
-Decide Request
-
-- action: "accept" or "reject"
-- request must be PENDING
+- paperId must exist, not archived
+- Unique (userId, paperId)
+- Approve/Reject: only PENDING
 
 ---
 
-## Error Responses
+## Errors
 
 - 400 VALIDATION_ERROR
 - 401 UNAUTHORIZED
@@ -480,85 +267,18 @@ Decide Request
 - 415 UNSUPPORTED_MEDIA_TYPE
 - 500 INTERNAL_SERVER_ERROR
 
-All errors use the canonical error shape; details/traceId optional.
+Canonical format applies.
 
 ---
 
-## Security & Auth Flow
+## Statistics / Analytics
 
-- Frontend obtains Google credential (ID token) via Google Identity Services.
-- Frontend POSTs /api/auth/google { token }.
-- Backend verifies token and domain, upserts user, issues JWT (HS256).
-- Frontend stores JWT (in-memory preferred for MVP) and calls GET /api/users/me to hydrate current user.
-- Every subsequent API call includes Authorization: Bearer <jwt>.
-- Server enforces RBAC and department scoping at service layer.
-- JWT lifetime: ~60 minutes (configurable); re-auth to refresh.
+- `/api/admin/stats/requests` → request stats scoped by department
+- `/api/admin/stats/research` → paper stats scoped by department
 
 ---
 
-## Statistics & Analytics API
+## State Machines
 
-### GET /api/admin/stats/requests
-
-Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
-
-Query params
-
-- departmentId: integer (optional; SUPER_ADMIN only)
-
-Responses
-
-- 200 OK
-  ```json
-  {
-    "totalRequests": 150,
-    "pendingRequests": 25,
-    "acceptedRequests": 100,
-    "rejectedRequests": 25
-  }
-  ```
-- 403 FORBIDDEN
-
-Authorization matrix:
-
-- DEPARTMENT_ADMIN: Returns stats for their department only
-- SUPER_ADMIN: Returns global stats, with optional department filter via departmentId param
-
-### /api/admin/stats/research
-
-Requires JWT (DEPARTMENT_ADMIN or SUPER_ADMIN).
-
-Query params
-
-- departmentId: integer (optional; SUPER_ADMIN only)
-
-Responses
-
-- 200 OK
-  ```json
-  {
-    "totalPapers": 85,
-    "activePapers": 70,
-    "archivedPapers": 15
-  }
-  ```
-- 403 FORBIDDEN
-
-Authorization matrix:
-
-- DEPARTMENT_ADMIN: Returns stats for their department only
-- SUPER_ADMIN: Returns global stats, with optional department filter via departmentId param
-
----
-
-## State Machines (for clarity)
-
-Paper.archived
-
-- false → true (via /archive)
-- true → false (via /unarchive)
-
-DocumentRequest.status
-
-- PENDING → ACCEPTED | REJECTED
-- ACCEPTED/REJECTED → terminal
+**Paper.archived**: `false → true` via /archive; `true → false` via /unarchive
+**DocumentRequest.status**: `PENDING → ACCEPTED | REJECTED` (terminal)

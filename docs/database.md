@@ -6,7 +6,7 @@
 
 ```sql
 -- ENUMS
-CREATE TYPE user_role AS ENUM ('STUDENT', 'DEPARTMENT_ADMIN', 'SUPER_ADMIN');
+CREATE TYPE user_role AS ENUM ('STUDENT', 'TEACHER', 'DEPARTMENT_ADMIN', 'SUPER_ADMIN');
 CREATE TYPE request_status AS ENUM ('PENDING', 'ACCEPTED', 'REJECTED');
 
 -- DEPARTMENTS
@@ -26,6 +26,7 @@ CREATE TABLE users (
     updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
+-- Index for fast department-based lookups
 CREATE INDEX idx_users_department ON users(department_id);
 
 -- RESEARCH PAPERS
@@ -43,6 +44,7 @@ CREATE TABLE research_papers (
     updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
+-- Indexes for filtering & RBAC queries
 CREATE INDEX idx_papers_department ON research_papers(department_id);
 CREATE INDEX idx_papers_submission_date ON research_papers(submission_date);
 CREATE INDEX idx_papers_archived ON research_papers(archived);
@@ -57,6 +59,7 @@ CREATE TABLE document_requests (
     UNIQUE(user_id, paper_id)
 );
 
+-- Indexes for performance
 CREATE INDEX idx_requests_user ON document_requests(user_id);
 CREATE INDEX idx_requests_paper ON document_requests(paper_id);
 
