@@ -225,7 +225,6 @@ For detailed API documentation including request/response schemas, error codes, 
   - Frontend obtains **Google OAuth authorization code** via Google Identity Services.
   - Backend exchanges the code for tokens:
     - ID token (JWT)
-    - Access token (for Google APIs if needed, not needed for now)
   - Backend verifies the **ID token**:
     - Signature
     - Issuer (`accounts.google.com`)
