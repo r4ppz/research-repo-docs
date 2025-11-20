@@ -87,7 +87,7 @@ Access rules (server-enforced):
 
 ## 3) Database Schema
 
-For the canonical database schema, see the [Database Schema](/docs/database_schema.md).
+For the canonical database schema, see the [Database Schema](/docs/database.md).
 
 ---
 
