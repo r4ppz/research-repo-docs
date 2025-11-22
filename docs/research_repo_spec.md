@@ -12,7 +12,7 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 - Data contract: API returns UI-ready, nested objects (no raw IDs-only responses).
 - File access:
   - Students: only if their request is ACCEPTED **and** the paper is not archived.
-  - Teachers: cannot view/download files.
+  - Teachers: only if their request is ACCEPTED **and** the paper is not archived.
   - Admins: full access within their department (DEPARTMENT_ADMIN) or globally (SUPER_ADMIN).
 
 - Archive feature:
@@ -28,7 +28,7 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 | Role             | Department | Can View Metadata               | Can Download/View PDF                           | Can CRUD Papers             | Can Approve/Reject Requests                 |
 | ---------------- | ---------- | ------------------------------- | ----------------------------------------------- | --------------------------- | ------------------------------------------- |
 | STUDENT          | null       | Non-archived papers             | Only if request ACCEPTED and paper not archived | No                          | No                                          |
-| TEACHER          | null       | All papers (including archived) | No                                              | No                          | No                                          |
+| TEACHER          | null       | All papers (including archived) | Only if request ACCEPTED and paper not archived | No                          | No                                          |
 | DEPARTMENT_ADMIN | Required   | All papers in their department  | Full for their department                       | Full for their department   | Approve/reject requests in their department |
 | SUPER_ADMIN      | null       | All papers                      | Full across all departments                     | Full across all departments | Full across all departments                 |
 
@@ -40,7 +40,7 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 
 - **TEACHER**
   - `/` → Library (all papers metadata)
-  - No request or CRUD pages
+  - `/teacher/requests` → Own requests
 
 - **DEPARTMENT_ADMIN**
   - `/` → Library (all papers metadata in dept)
@@ -61,9 +61,10 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
   - `GET /api/filters/departments`
   - `GET /api/filters/dates`
 
-- Teachers see archived papers metadata but cannot download files.
+- Teachers see archived papers metadata but can only download files if they have an ACCEPTED request for non-archived papers.
 
 - Students see only non-archived papers; download restricted by request status and archive state.
+- Teachers can request non-archived papers (same validation rules as students: paper must exist, not be archived, and unique request per user/paper).
 
 ---
 
@@ -196,10 +197,10 @@ export interface FilterOptions {
 - `GET /api/papers` → paginated, filters applied
 - `GET /api/papers/{id}` → specific paper
 
-**Student Requests**
+**Student/Teacher Requests**
 
-- `GET /api/users/me/requests` → own requests
-- `POST /api/requests` → create new request
+- `GET /api/users/me/requests` → own requests (STUDENT and TEACHER roles)
+- `POST /api/requests` → create new request (STUDENT and TEACHER roles)
 
 **Admin Requests**
 
@@ -262,6 +263,7 @@ For detailed API documentation including request/response schemas, error codes, 
     - `SUPER_ADMIN`: unrestricted
     - `DEPARTMENT_ADMIN`: full access to papers in their department, including archived
     - `STUDENT`: access only to non-archived papers with `ACCEPTED` request
+    - `TEACHER`: access only to non-archived papers with `ACCEPTED` request
 
   - Never trust frontend; all enforcement occurs on backend.
 

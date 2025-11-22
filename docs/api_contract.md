@@ -38,12 +38,12 @@
 
 ## Roles and Access Rules
 
-| Role             | Paper Metadata             | Download/View                                   | CRUD | Request Approval | Archived Behavior                     |
-| ---------------- | -------------------------- | ----------------------------------------------- | ---- | ---------------- | ------------------------------------- |
-| STUDENT          | Active papers only         | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Cannot access archived                |
-| TEACHER          | All papers (metadata only) | ❌                                              | ❌   | ❌               | Sees metadata for archived            |
-| DEPARTMENT_ADMIN | Papers in their department | Full access (active + archived)                 | ✅   | ✅               | Can archive/unarchive papers          |
-| SUPER_ADMIN      | All papers                 | Full access                                     | ✅   | ✅               | Can archive/unarchive papers globally |
+| Role             | Paper Metadata             | Download/View                                   | CRUD | Request Approval | Archived Behavior                                    |
+| ---------------- | -------------------------- | ----------------------------------------------- | ---- | ---------------- | ---------------------------------------------------- |
+| STUDENT          | Active papers only         | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Cannot access archived                               |
+| TEACHER          | All papers (metadata only) | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Sees metadata for archived, can request non-archived |
+| DEPARTMENT_ADMIN | Papers in their department | Full access (active + archived)                 | ✅   | ✅               | Can archive/unarchive papers                         |
+| SUPER_ADMIN      | All papers                 | Full access                                     | ✅   | ✅               | Can archive/unarchive papers globally                |
 
 ---
 
@@ -181,7 +181,7 @@ All require JWT. Students cannot filter by archived.
 ### GET /api/users/me/requests
 
 - Returns all own requests for non-archived papers
-- Teachers cannot use → 403
+- Available to STUDENT and TEACHER roles
 
 ### POST /api/requests
 
@@ -189,6 +189,7 @@ All require JWT. Students cannot filter by archived.
 - Paper must exist and not be archived
 - Duplicate → 409
 - Response: `{ "requestId": number }`
+- Available to STUDENT and TEACHER roles
 
 ---
 
@@ -232,7 +233,7 @@ Server enforces:
   - SUPER_ADMIN → always
   - DEPARTMENT_ADMIN → allowed if paper in department
   - STUDENT → allowed only if ACCEPTED request and paper not archived
-  - TEACHER → ❌
+  - TEACHER → allowed only if ACCEPTED request and paper not archived
 
 - Returns binary, 403 or 404 otherwise
 
