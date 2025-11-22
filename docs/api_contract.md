@@ -41,7 +41,7 @@
 | Role             | Paper Metadata             | Download/View                                   | CRUD | Request Approval | Archived Behavior                                    |
 | ---------------- | -------------------------- | ----------------------------------------------- | ---- | ---------------- | ---------------------------------------------------- |
 | STUDENT          | Active papers only         | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Cannot access archived                               |
-| TEACHER          | All papers (metadata only) | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Sees metadata for archived, can request non-archived |
+| TEACHER          | All papers (metadata only) | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Sees metadata for archived, cannot request/download archived |
 | DEPARTMENT_ADMIN | Papers in their department | Full access (active + archived)                 | ✅   | ✅               | Can archive/unarchive papers                         |
 | SUPER_ADMIN      | All papers                 | Full access                                     | ✅   | ✅               | Can archive/unarchive papers globally                |
 

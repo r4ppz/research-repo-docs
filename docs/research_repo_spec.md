@@ -64,7 +64,7 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 - Teachers see archived papers metadata but can only download files if they have an ACCEPTED request for non-archived papers.
 
 - Students see only non-archived papers; download restricted by request status and archive state.
-- Teachers can request non-archived papers (same validation rules as students: paper must exist, not be archived, and unique request per user/paper).
+- Teachers can request non-archived papers only (same validation rules as students: paper must exist, not be archived, and unique request per user/paper). Teachers can view archived paper metadata but cannot request archived papers.
 
 ---
 
@@ -301,14 +301,14 @@ For detailed API documentation including request/response schemas, error codes, 
 
 ## Error & Validation Conventions
 
-| HTTP    | Condition                                                                      |
-| ------- | ------------------------------------------------------------------------------ |
-| 400     | Validation error                                                               |
-| 401     | Missing/invalid access token (JWT) or expired refresh token                  |
-| 403     | Role/department scope failed                                                   |
-| 404     | Not found (paper, request, file; also used to prevent leaking archived papers) |
+| HTTP    | Condition                                                                        |
+| ------- | -------------------------------------------------------------------------------- |
+| 400     | Validation error                                                                 |
+| 401     | Missing/invalid access token (JWT) or expired refresh token                      |
+| 403     | Role/department scope failed                                                     |
+| 404     | Not found (paper, request, file; also used to prevent leaking archived papers)   |
 | 409     | Duplicate request (user+paper) or refresh token reuse detected (potential theft) |
-| 413/415 | File upload issues                                                             |
+| 413/415 | File upload issues                                                               |
 
 Canonical response:
 
