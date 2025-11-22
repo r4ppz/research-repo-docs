@@ -8,7 +8,7 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 
 - Purpose: A gated school research repository where students can browse paper metadata, request access to full documents, and where admins manage papers and requests.
 - Authentication: Google SSO restricted to `@acdeducation.com`.
-- Authorization: JWT with role-based access (STUDENT, TEACHER, DEPARTMENT_ADMIN, SUPER_ADMIN). Department scoping applies only to DEPARTMENT_ADMIN.
+- Authorization: Access tokens (JWT) with role-based access (STUDENT, TEACHER, DEPARTMENT_ADMIN, SUPER_ADMIN). Department scoping applies only to DEPARTMENT_ADMIN.
 - Data contract: API returns UI-ready, nested objects (no raw IDs-only responses).
 - File access:
   - Students: only if their request is ACCEPTED **and** the paper is not archived.
@@ -121,7 +121,7 @@ CREATE TABLE document_requests (
 );
 ```
 
-For the full database migration, see the [Database Migration](/docs/database.md).
+For the full database migration, see the [Database Migration](/docs/database_migration.md).
 
 ---
 
@@ -180,7 +180,8 @@ export interface FilterOptions {
 
 **Authentication**
 
-- `POST /api/auth/google` → Google ID token
+- `POST /api/auth/google` → Google ID token (returns access and refresh tokens)
+- `POST /api/auth/refresh` → Refresh access token using refresh token
 
 **User**
 
@@ -224,9 +225,10 @@ For detailed API documentation including request/response schemas, error codes, 
 
 - **Authentication (AuthN)**:
   - Frontend obtains **Google OAuth authorization code** via Google Identity Services.
-  - Backend exchanges the code for tokens:
-    - ID token (JWT)
-  - Backend verifies the **ID token**:
+  - Backend exchanges the code for:
+    - Access token (JWT) - short-lived (60 minutes)
+    - Refresh token - long-lived (30 days), stored in database
+  - Backend verifies the **Google ID token**:
     - Signature
     - Issuer (`accounts.google.com`)
     - Audience (your Google client ID)
@@ -235,6 +237,14 @@ For detailed API documentation including request/response schemas, error codes, 
 
   - On first login, a new user record is created with default role `STUDENT`.
 
+- **Token Refresh Flow**:
+  - When access token expires, frontend calls `/api/auth/refresh` with the refresh token
+  - Backend validates refresh token against database records (checks expiration)
+  - For security, if a refresh token is used twice (indicating potential theft), all tokens for that user are revoked
+  - Backend generates new access token and new refresh token
+  - Old refresh token is replaced with new one (rotation)
+  - New tokens are returned to frontend for continued session
+
 - **Manual Role Assignment**:
   - Teacher and admin emails are inserted manually via:
     - Flyway migration
@@ -242,7 +252,7 @@ For detailed API documentation including request/response schemas, error codes, 
 
   - Roles are `DEPARTMENT_ADMIN` (with department) or `SUPER_ADMIN` (no department).
 
-- **JWT Structure**:
+- **Access Token Structure (JWT)**:
   - **Claims**:
     - `sub`: `userId` (primary key from users table)
     - `email`: user email
@@ -255,6 +265,12 @@ For detailed API documentation including request/response schemas, error codes, 
 
   - Lifetime: 60 minutes (configurable)
   - Backend uses `sub` for all RBAC and department-scoped queries; other claims are for convenience/UI.
+
+- **Refresh Token**:
+  - Secure random token string stored in database with UNIQUE constraint
+  - Lifetime: 30 days (configurable)
+  - Stored with user_id reference and expiration timestamp
+  - Primary security relies on expiration with reuse detection for theft protection
 
 - **Authorization (AuthZ)**:
   - Spring Security + service-layer enforcement.
@@ -274,10 +290,12 @@ For detailed API documentation including request/response schemas, error codes, 
 - HTTPS for production
 - CORS: dev allowed; prod strict
 - CSRF: if cookies used
-- Rate limiting: login, create-request endpoints (MVP)
+- Rate limiting: login, create-request, and token refresh endpoints (MVP)
 - File validation: MIME + size limits (e.g., 20MB)
-- Logging: audit decisions
+- Logging: audit decisions including token refresh attempts
 - Content Security Policy (frontend)
+- Refresh token rotation: new refresh token issued on each use; old token replaced
+- Refresh token reuse detection: if a token is used twice, all user tokens are revoked as security measure
 
 ---
 
@@ -286,10 +304,10 @@ For detailed API documentation including request/response schemas, error codes, 
 | HTTP    | Condition                                                                      |
 | ------- | ------------------------------------------------------------------------------ |
 | 400     | Validation error                                                               |
-| 401     | Missing/invalid JWT                                                            |
+| 401     | Missing/invalid access token (JWT) or expired refresh token                  |
 | 403     | Role/department scope failed                                                   |
 | 404     | Not found (paper, request, file; also used to prevent leaking archived papers) |
-| 409     | Duplicate request (user+paper)                                                 |
+| 409     | Duplicate request (user+paper) or refresh token reuse detected (potential theft) |
 | 413/415 | File upload issues                                                             |
 
 Canonical response:

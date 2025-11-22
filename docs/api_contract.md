@@ -22,7 +22,7 @@
 }
 ```
 
-- **Authorization header:** `Authorization: Bearer <jwt>`
+- **Authorization header:** `Authorization: Bearer <access_token>`
 - **Error model (canonical):**
 
 ```json
@@ -93,7 +93,7 @@ interface DocumentRequest {
 
 ### POST /api/auth/google
 
-- **Public.** Exchanges Google ID token for JWT.
+- **Public.** Exchanges Google ID token for JWT access token and refresh token.
 
 Request:
 
@@ -107,7 +107,8 @@ Responses:
 
 ```json
 {
-  "jwt": "<token>",
+  "accessToken": "<jwt_token>",
+  "refreshToken": "<refresh_token>",
   "user": {
     "userId": 1,
     "email": "alice@acdeducation.com",
@@ -130,7 +131,47 @@ Responses:
 { "error": "Email domain not allowed", "code": "DOMAIN_NOT_ALLOWED" }
 ```
 
-Notes: Backend must validate Google token and enforce `acdeducation.com`.
+### POST /api/auth/refresh
+
+- **Public.** Exchanges refresh token for new access token.
+- Requires refresh token in request body
+
+Request:
+
+```json
+{ "refreshToken": "<refresh_token>" }
+```
+
+Responses:
+
+- **200 OK**
+
+```json
+{
+  "accessToken": "<new_jwt_token>",
+  "refreshToken": "<new_refresh_token>"
+}
+```
+
+- **400 INVALID_TOKEN**
+
+```json
+{ "error": "Invalid refresh token", "code": "INVALID_TOKEN" }
+```
+
+- **401 UNAUTHORIZED**
+
+```json
+{ "error": "Refresh token expired", "code": "REFRESH_TOKEN_REVOKED" }
+```
+
+- **409 CONFLICT**
+
+```json
+{ "error": "Potential token theft detected", "code": "REFRESH_TOKEN_STOLEN" }
+```
+
+Notes: Returns a new access token and a new refresh token to maintain continuous session. The old refresh token is invalidated. If a refresh token is used twice, all user tokens are revoked as a security measure.
 
 ---
 
@@ -267,6 +308,9 @@ Server enforces:
 - 413 PAYLOAD_TOO_LARGE
 - 415 UNSUPPORTED_MEDIA_TYPE
 - 500 INTERNAL_SERVER_ERROR
+- Custom error codes:
+  - REFRESH_TOKEN_REVOKED: Used when refresh token is expired
+  - REFRESH_TOKEN_STOLEN: Used when refresh token reuse is detected (potential theft)
 
 Canonical format applies.
 
