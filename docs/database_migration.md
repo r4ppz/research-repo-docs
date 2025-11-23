@@ -56,7 +56,8 @@ CREATE TABLE document_requests (
     paper_id INT NOT NULL REFERENCES research_papers(paper_id) ON DELETE CASCADE,
     request_date TIMESTAMP NOT NULL DEFAULT now(),
     status request_status NOT NULL DEFAULT 'PENDING',
-    UNIQUE(user_id, paper_id)
+    -- Allow multiple requests per user/paper (enabling re-requests after rejection)
+    -- Check for existing PENDING/ACCEPTED requests in application logic
 );
 
 -- Indexes for performance

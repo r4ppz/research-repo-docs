@@ -80,7 +80,8 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 - Teachers see archived papers metadata but can only download files if they have an ACCEPTED request for non-archived papers.
 
 - Students see only non-archived papers; download restricted by request status and archive state.
-- Teachers can request non-archived papers only (same validation rules as students: paper must exist, not be archived, and unique request per user/paper). Teachers can view archived paper metadata but cannot request archived papers.
+- Teachers can request non-archived papers only (same validation rules as students: paper must exist, not be archived, with only one active request per paper). Teachers can view archived paper metadata but cannot request archived papers.
+- Students and teachers can delete their own REJECTED requests to submit new ones.
 
 ---
 
@@ -146,7 +147,8 @@ CREATE TABLE document_requests (
     paper_id INT NOT NULL REFERENCES research_papers(paper_id) ON DELETE CASCADE,
     request_date TIMESTAMP NOT NULL DEFAULT now(),
     status request_status NOT NULL DEFAULT 'PENDING',
-    UNIQUE(user_id, paper_id)
+    -- Allow multiple requests per user/paper to enable re-requesting after rejection
+    -- Check for existing PENDING/ACCEPTED requests in application logic
 );
 ```
 
@@ -232,6 +234,7 @@ export interface FilterOptions {
 
 - `GET /api/users/me/requests` → own requests (STUDENT and TEACHER roles)
 - `POST /api/requests` → create new request (STUDENT and TEACHER roles)
+- `DELETE /api/requests/{requestId}` → delete own request (enables re-requesting after rejection)
 
 **Admin Requests**
 
@@ -322,7 +325,7 @@ For detailed API documentation including request/response schemas, error codes, 
 | 401     | Missing/invalid access token (JWT) or expired refresh token                      |
 | 403     | Role/department scope failed                                                     |
 | 404     | Not found (paper, request, file; also used to prevent leaking archived papers)   |
-| 409     | Duplicate request (user+paper) only |
+| 409     | Duplicate active request (PENDING or ACCEPTED for same user+paper) |
 | 413/415 | File upload issues                                                               |
 
 Canonical response:
