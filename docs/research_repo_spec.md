@@ -82,6 +82,7 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 - Students see only non-archived papers; download restricted by request status and archive state.
 - Teachers can request non-archived papers only (same validation rules as students: paper must exist, not be archived, with only one active request per paper). Teachers can view archived paper metadata but cannot request archived papers.
 - Students and teachers can delete their own REJECTED requests to submit new ones.
+- Database constraint prevents duplicate PENDING/ACCEPTED requests, handling race conditions from double-clicks.
 
 ---
 
@@ -147,9 +148,11 @@ CREATE TABLE document_requests (
     paper_id INT NOT NULL REFERENCES research_papers(paper_id) ON DELETE CASCADE,
     request_date TIMESTAMP NOT NULL DEFAULT now(),
     status request_status NOT NULL DEFAULT 'PENDING',
-    -- Allow multiple requests per user/paper to enable re-requesting after rejection
-    -- Check for existing PENDING/ACCEPTED requests in application logic
 );
+-- Partial unique index to prevent duplicate PENDING or ACCEPTED requests for same user/paper
+CREATE UNIQUE INDEX idx_unique_pending_accepted_request
+ON document_requests (user_id, paper_id)
+WHERE status IN ('PENDING', 'ACCEPTED');
 ```
 
 For the full database migration, see the [Database Migration](/docs/database_migration.md).
@@ -244,11 +247,10 @@ export interface FilterOptions {
 **Admin Papers**
 
 - `POST /api/admin/papers` → create paper (multipart upload with two parts: `metadata` as stringified JSON and `file`)
-- `PUT /api/admin/papers/{id}`
-- `DELETE /api/admin/papers/{id}`
-- `PUT /api/admin/papers/{id}/archive`
-- `PUT /api/admin/papers/{id}/unarchive`
-- `GET /api/admin/papers` → list admin papers with filters
+- `PUT /api/admin/papers/{id}` → update fields
+- `DELETE /api/admin/papers/{id}` → delete
+- `PUT /api/admin/papers/{id}/archive` and `/unarchive` → idempotent operations
+- `GET /api/admin/papers` → list with filters + pagination
 
 For detailed API documentation including request/response schemas, error codes, and authorization requirements, see the full [API Contract](/docs/api_contract.md).
 
@@ -310,6 +312,7 @@ For detailed API documentation including request/response schemas, error codes, 
 - **CORS**: Dev allowed; Prod strict.
 - **Cookies**: `HttpOnly`, `Secure`, `SameSite=Strict` (Mitigates XSS and CSRF).
 - **Rate limiting**: Login, create-request, and refresh endpoints.
+- **Database constraint**: Partial unique index prevents duplicate PENDING/ACCEPTED requests for same user/paper, solving race condition issues.
 - **File validation**: MIME + size limits (20MB).
 - **Logging**: Audit decisions including token refresh attempts.
 - **Refresh token rotation**: New token issued on every use; old token invalidated.
@@ -319,14 +322,14 @@ For detailed API documentation including request/response schemas, error codes, 
 
 ## Error & Validation Conventions
 
-| HTTP    | Condition                                                                        |
-| ------- | -------------------------------------------------------------------------------- |
-| 400     | Validation error                                                                 |
-| 401     | Missing/invalid access token (JWT) or expired refresh token                      |
-| 403     | Role/department scope failed                                                     |
-| 404     | Not found (paper, request, file; also used to prevent leaking archived papers)   |
-| 409     | Duplicate active request (PENDING or ACCEPTED for same user+paper) |
-| 413/415 | File upload issues                                                               |
+| HTTP    | Condition                                                                                             |
+| ------- | ----------------------------------------------------------------------------------------------------- |
+| 400     | Validation error                                                                                      |
+| 401     | Missing/invalid access token (JWT) or expired refresh token                                           |
+| 403     | Role/department scope failed                                                                          |
+| 404     | Not found (paper, request, file; also used to prevent leaking archived papers)                        |
+| 409     | Duplicate active request (PENDING or ACCEPTED for same user+paper) - prevented by database constraint |
+| 413/415 | File upload issues                                                                                    |
 
 Canonical response:
 

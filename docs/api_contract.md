@@ -265,7 +265,7 @@ All require JWT. Students cannot filter by archived.
 
 - Create new request
 - Paper must exist and not be archived
-- Only one PENDING or ACCEPTED request allowed per user/paper → 409
+- Only one PENDING or ACCEPTED request allowed per user/paper (enforced by database partial unique index) → 409 CONFLICT
 - Response: `{ "requestId": number }`
 - Available to STUDENT and TEACHER roles
 
@@ -340,9 +340,10 @@ Server enforces:
 **DocumentRequest**
 
 - paperId must exist, not archived
-- Only one PENDING or ACCEPTED request allowed per user/paper (no duplicate active requests)
+- Only one PENDING or ACCEPTED request allowed per user/paper (no duplicate active requests) - enforced by database partial unique index
 - Users can create new requests after previous ones are REJECTED
 - Approve/Reject: only PENDING
+- Attempting to create duplicate PENDING/ACCEPTED request → 409 CONFLICT
 
 ---
 

@@ -56,13 +56,17 @@ CREATE TABLE document_requests (
     paper_id INT NOT NULL REFERENCES research_papers(paper_id) ON DELETE CASCADE,
     request_date TIMESTAMP NOT NULL DEFAULT now(),
     status request_status NOT NULL DEFAULT 'PENDING',
-    -- Allow multiple requests per user/paper (enabling re-requests after rejection)
-    -- Check for existing PENDING/ACCEPTED requests in application logic
+    -- Allow multiple requests per user/paper over time (enabling re-requests after rejection)
+    -- Database-level constraint prevents duplicate PENDING/ACCEPTED requests
 );
 
 -- Indexes for performance
 CREATE INDEX idx_requests_user ON document_requests(user_id);
 CREATE INDEX idx_requests_paper ON document_requests(paper_id);
+-- Partial unique index to prevent duplicate PENDING or ACCEPTED requests for same user/paper
+CREATE UNIQUE INDEX idx_unique_pending_accepted_request
+ON document_requests (user_id, paper_id)
+WHERE status IN ('PENDING', 'ACCEPTED');
 
 ```
 
