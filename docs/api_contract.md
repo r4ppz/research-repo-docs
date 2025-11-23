@@ -172,22 +172,12 @@ JSON
     ```
 
 - **401 UNAUTHORIZED**
-  - Occurs if the cookie is missing, expired, or revoked.
+  - Occurs if the cookie is missing, expired, revoked, or if the token has already been used (due to network issues).
 
   JSON
 
   ```
   { "error": "Refresh token expired or missing", "code": "REFRESH_TOKEN_REVOKED" }
-
-  ```
-
-- **409 CONFLICT**
-  - Occurs if the token has already been used (Reuse Detection).
-
-  JSON
-
-  ```
-  { "error": "Potential token theft detected", "code": "REFRESH_TOKEN_STOLEN" }
 
   ```
 
@@ -358,7 +348,6 @@ Server enforces:
 - 500 INTERNAL_SERVER_ERROR
 - Custom error codes:
   - REFRESH_TOKEN_REVOKED: Used when refresh token is expired
-  - REFRESH_TOKEN_STOLEN: Used when refresh token reuse is detected (potential theft)
 
 Canonical format applies.
 

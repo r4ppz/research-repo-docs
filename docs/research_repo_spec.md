@@ -269,7 +269,7 @@ For detailed API documentation including request/response schemas, error codes, 
   - When access token expires, frontend calls `/api/auth/refresh`.
   - **Browser automatically attaches the `refreshToken` cookie** (no manual storage in React).
   - Backend validates refresh token against database records (checks expiration).
-  - **Reuse Detection:** If a refresh token is used twice (indicating theft), all tokens for that user are revoked.
+  - If a refresh token is used again (e.g., due to network issues), the server returns 401 Unauthorized and the client redirects to login.
   - Backend generates new access token and new refresh token.
   - **Rotation:** Old refresh token is revoked; new refresh token is sent via a new `Set-Cookie` header.
   - New access token is returned in JSON body.
@@ -293,7 +293,7 @@ For detailed API documentation including request/response schemas, error codes, 
   - Opaque, unique string stored in database.
   - Lifetime: 30 days.
   - **Transport:** Strictly `httpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/auth/` cookie (never in JSON body).
-  - Primary security relies on expiration + rotation + reuse detection.
+  - Primary security relies on expiration + rotation.
 
 - **Authorization (AuthZ)**:
   - Spring Security + service-layer enforcement.
@@ -310,7 +310,7 @@ For detailed API documentation including request/response schemas, error codes, 
 - **File validation**: MIME + size limits (20MB).
 - **Logging**: Audit decisions including token refresh attempts.
 - **Refresh token rotation**: New token issued on every use; old token invalidated.
-- **Refresh token reuse detection**: Immediate revocation of all user sessions if a used token is presented again.
+- **Refresh token reuse detection (MVP approach)**: For the MVP, reuse detection is simplified. If a client attempts to use an already-revoked token, the server returns 401 Unauthorized. The client then redirects to login. This reduces complexity while maintaining security against most basic threats.
 
 ---
 
@@ -322,7 +322,7 @@ For detailed API documentation including request/response schemas, error codes, 
 | 401     | Missing/invalid access token (JWT) or expired refresh token                      |
 | 403     | Role/department scope failed                                                     |
 | 404     | Not found (paper, request, file; also used to prevent leaking archived papers)   |
-| 409     | Duplicate request (user+paper) or refresh token reuse detected (potential theft) |
+| 409     | Duplicate request (user+paper) only |
 | 413/415 | File upload issues                                                               |
 
 Canonical response:
