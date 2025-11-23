@@ -136,7 +136,7 @@ CREATE TABLE document_requests (
 );
 ```
 
-For the full database migration, see the [Database Migration](docs/database_migration.md).
+For the full database migration, see the [Database Migration](/docs/database_migration.md).
 
 ---
 
@@ -233,7 +233,7 @@ export interface FilterOptions {
 - `PUT /api/admin/papers/{id}/unarchive`
 - `GET /api/admin/papers` → list admin papers with filters
 
-For detailed API documentation including request/response schemas, error codes, and authorization requirements, see the full [API Contract](docs/api_contract.md).
+For detailed API documentation including request/response schemas, error codes, and authorization requirements, see the full [API Contract](/docs/api_contract.md).
 
 ---
 
