@@ -2,19 +2,18 @@
 
 <!--toc:start-->
 
-- [Research Repository — Architecture & Implementation Spec](#research-repository-architecture-implementation-spec)
-  - [High-level Summary](#high-level-summary)
-  - [Roles & Capabilities](#roles-capabilities)
-    - [Page Access](#page-access)
-  - [Frontend Considerations](#frontend-considerations)
-  - [Tech Stack](#tech-stack)
-  - [Database Schema](#database-schema)
-  - [Domain Types (Frontend)](#domain-types-frontend)
-  - [API Endpoints (Summary)](#api-endpoints-summary)
-  - [AuthN/AuthZ](#authnauthz)
-  - [Security](#security)
-  - [Error & Validation Conventions](#error-validation-conventions)
-  <!--toc:end-->
+- [High-level Summary](#high-level-summary)
+- [Roles & Capabilities](#roles-capabilities)
+  - [Page Access](#page-access)
+- [Frontend Considerations](#frontend-considerations)
+- [Tech Stack](#tech-stack)
+- [Database Schema](#database-schema)
+- [Domain Types (Frontend)](#domain-types-frontend)
+- [API Endpoints (Summary)](#api-endpoints-summary)
+- [AuthN/AuthZ](#authnauthz)
+- [Security](#security)
+- [Error & Validation Conventions](#error-validation-conventions)
+<!--toc:end-->
 
 This spec is intentionally blunt and detailed. It is the **single source of truth** for backend and frontend data design, API contracts, and authorization logic. All changes must be documented here first, then implemented.
 
