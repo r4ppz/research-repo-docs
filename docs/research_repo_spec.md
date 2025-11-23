@@ -131,7 +131,7 @@ CREATE TABLE users (
 
 CREATE TABLE research_papers (
     paper_id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
+    title TEXT NOT NULL,
     author_name VARCHAR(255) NOT NULL,
     abstract_text TEXT NOT NULL,
     file_path VARCHAR(512) NOT NULL, -- relative file path, e.g. '2023/dept_cs/paper_123.pdf', not full API URL

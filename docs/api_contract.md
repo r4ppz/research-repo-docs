@@ -331,7 +331,8 @@ Server enforces:
 
 **Paper Create/Update**
 
-- title, authorName: non-empty, ≤255
+- title: non-empty (up to database TEXT limit)
+- authorName: non-empty, ≤255
 - abstractText: non-empty
 - submissionDate: YYYY-MM-DD format
 - departmentId: must exist
