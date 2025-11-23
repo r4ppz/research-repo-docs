@@ -296,7 +296,9 @@ All require JWT. Students cannot filter by archived.
 
 ## Admin Papers
 
-- POST: create (multipart: `meta` JSON + `file`)
+- POST: create (multipart upload with two parts: `metadata` as stringified JSON and `file`)
+  - `metadata`: Form field containing raw stringified JSON with paper details (title, authorName, abstractText, departmentId)
+  - `file`: PDF or DOCX file upload
 - PUT: update fields
 - DELETE: delete
 - PUT /archive and /unarchive: idempotent

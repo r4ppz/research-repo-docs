@@ -243,7 +243,7 @@ export interface FilterOptions {
 
 **Admin Papers**
 
-- `POST /api/admin/papers`
+- `POST /api/admin/papers` → create paper (multipart upload with two parts: `metadata` as stringified JSON and `file`)
 - `PUT /api/admin/papers/{id}`
 - `DELETE /api/admin/papers/{id}`
 - `PUT /api/admin/papers/{id}/archive`
