@@ -35,7 +35,7 @@ CREATE TABLE research_papers (
     title VARCHAR(255) NOT NULL,
     author_name VARCHAR(255) NOT NULL,
     abstract_text TEXT NOT NULL,
-    file_url VARCHAR(512) NOT NULL,
+    file_path VARCHAR(512) NOT NULL, -- relative file path, e.g. '2023/dept_cs/paper_123.pdf', not full API URL
     department_id INT NOT NULL REFERENCES departments(department_id) ON DELETE RESTRICT,
     submission_date DATE NOT NULL,
     archived BOOLEAN NOT NULL DEFAULT FALSE,

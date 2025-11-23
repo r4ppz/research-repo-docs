@@ -73,7 +73,7 @@ interface ResearchPaper {
   abstractText: string;
   department: Department;
   submissionDate: string; // YYYY-MM-DD
-  fileUrl: string; // e.g., /api/files/<fileId>.pdf where <fileId> corresponds to paper_id (SERIAL integer)
+  filePath: string; // relative file path, e.g. '2023/dept_cs/paper_123.pdf'; full URL constructed dynamically by DTO/Mapper layer
   archived: boolean;
   archivedAt?: string | null;
 }
@@ -317,6 +317,7 @@ Server enforces:
 ### GET /api/files/{fileId}
 
 - JWT required
+- Constructs the file path from the paper's filePath field in the database
 - Authorization matrix:
   - SUPER_ADMIN → always
   - DEPARTMENT_ADMIN → allowed if paper in department

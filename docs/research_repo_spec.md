@@ -99,10 +99,12 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 
 - **Local Filesystem:** PDF files are stored directly on the server's local filesystem using Java File I/O operations.
 - **Docker Volume Mount:** A host directory is mounted to the container (e.g., `-v /opt/repo/data:/app/uploads`) to persist files across container restarts.
-- **Zero Latency:** No network round-trips required to fetch files, resulting in optimal performance.
-- **Zero Cost:** No external storage services or cloud storage fees required.
-- **Simplicity:** Straightforward implementation using standard Java file operations.
-- **Backup Strategy:** Files are stored in a designated directory that can be easily backed up by archiving the entire folder.
+- **Performance:** Direct filesystem access provides lower latency compared to remote storage services like S3.
+- **Deployment Considerations:** This approach creates a stateful deployment that couples files to a specific server instance.
+- **Scalability Limitations:** Horizontal scaling requires shared storage (NFS) or prevents multiple instances from being viable.
+- **Reliability:** Files are tied to the physical server; proper backup strategy (e.g., cron job with rsync) is essential for disaster recovery.
+- **Database Design:** The `file_path` column stores only the relative file path (e.g., `2023/dept_cs/paper_123.pdf`) rather than full API paths. The complete URL is constructed dynamically in the DTO/Mapper layer.
+- **Cost:** No external storage services or cloud storage fees required for basic deployment.
 
 ---
 
@@ -129,7 +131,7 @@ CREATE TABLE research_papers (
     title VARCHAR(255) NOT NULL,
     author_name VARCHAR(255) NOT NULL,
     abstract_text TEXT NOT NULL,
-    file_url VARCHAR(512) NOT NULL,
+    file_path VARCHAR(512) NOT NULL, -- relative file path, e.g. '2023/dept_cs/paper_123.pdf', not full API URL
     department_id INT NOT NULL REFERENCES departments(department_id) ON DELETE RESTRICT,
     submission_date DATE NOT NULL,
     archived BOOLEAN NOT NULL DEFAULT FALSE,
@@ -178,7 +180,7 @@ export interface ResearchPaper {
   abstractText: string;
   department: Department;
   submissionDate: string; // YYYY-MM-DD
-  fileUrl: string; // API path (gated) where the identifier corresponds to paper_id (SERIAL integer), e.g., /api/files/<fileId>.pdf
+  filePath: string; // relative file path, e.g. '2023/dept_cs/paper_123.pdf'; full URL constructed dynamically by DTO/Mapper layer
   archived: boolean;
   archivedAt?: string | null; // YYYY-MM-DD or ISO datetime
 }
