@@ -13,6 +13,7 @@
 - [API Endpoints (Summary)](#api-endpoints-summary)
 - [AuthN/AuthZ](#authnauthz)
 - [Security](#security)
+- [Configuration](#configuration)
 - [Error & Validation Conventions](#error-validation-conventions)
 <!--toc:end-->
 
@@ -319,6 +320,18 @@ For detailed API documentation including request/response schemas, error codes, 
 - **Refresh token reuse detection (MVP approach)**: For the MVP, reuse detection is simplified. If a client attempts to use an already-revoked token, the server returns 401 Unauthorized. The client then redirects to login. This reduces complexity while maintaining security against most basic threats.
 
 ---
+
+## Configuration
+
+### Development vs Production Environment
+
+**Cookie Settings:**
+- **Production:** `SameSite=Strict`, `Secure=True`
+- **Development:** `SameSite=Lax`, `Secure=False` (to allow cross-origin requests between localhost:5173 and localhost:8080)
+
+**CORS Settings:**
+- **Development:** Allow requests from `http://localhost:5173`
+- **Production:** Restrict to frontend domain only
 
 ## Error & Validation Conventions
 
