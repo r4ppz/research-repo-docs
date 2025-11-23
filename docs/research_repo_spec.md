@@ -165,16 +165,16 @@ export interface ResearchPaper {
   authorName: string;
   abstractText: string;
   department: Department;
-  submissionDate: string; // ISO date
-  fileUrl: string; // API path (gated)
+  submissionDate: string; // YYYY-MM-DD
+  fileUrl: string; // API path (gated) where the identifier corresponds to paper_id (SERIAL integer), e.g., /api/files/<fileId>.pdf
   archived: boolean;
-  archivedAt?: string | null; // ISO datetime
+  archivedAt?: string | null; // YYYY-MM-DD or ISO datetime
 }
 
 export interface DocumentRequest {
   requestId: number;
   status: RequestStatus;
-  requestDate: string;
+  requestDate: string; // YYYY-MM-DD
   paper: ResearchPaper; // nested
   requester: User; // nested
 }
@@ -243,7 +243,7 @@ For detailed API documentation including request/response schemas, error codes, 
   - Frontend obtains **Google OAuth authorization code** via Google Identity Services.
   - Backend exchanges the code for:
     - Access token (JWT) - short-lived (60 minutes), returned in JSON body.
-    - Refresh token - long-lived (30 days), **returned in `httpOnly`, `Secure`, `SameSite=Strict` cookie**.
+    - Refresh token - long-lived (30 days), **returned in `httpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/auth/` cookie**.
 
   - Backend verifies the **Google ID token**:
     - Signature, Issuer, Audience, Expiry.
@@ -278,7 +278,7 @@ For detailed API documentation including request/response schemas, error codes, 
 - **Refresh Token**:
   - Opaque, unique string stored in database.
   - Lifetime: 30 days.
-  - **Transport:** Strictly `httpOnly` Cookie (never in JSON body).
+  - **Transport:** Strictly `httpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/auth/` cookie (never in JSON body).
   - Primary security relies on expiration + rotation + reuse detection.
 
 - **Authorization (AuthZ)**:

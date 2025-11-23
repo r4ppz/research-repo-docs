@@ -73,7 +73,7 @@ interface ResearchPaper {
   abstractText: string;
   department: Department;
   submissionDate: string; // YYYY-MM-DD
-  fileUrl: string; // e.g., /api/files/<uuid>.pdf
+  fileUrl: string; // e.g., /api/files/<fileId>.pdf where <fileId> corresponds to paper_id (SERIAL integer)
   archived: boolean;
   archivedAt?: string | null;
 }
@@ -81,7 +81,7 @@ interface ResearchPaper {
 interface DocumentRequest {
   requestId: number;
   status: RequestStatus;
-  requestDate: string;
+  requestDate: string; // YYYY-MM-DD
   paper: ResearchPaper;
   requester: User;
 }
@@ -109,7 +109,7 @@ JSON
 **Responses:**
 
 - **200 OK**
-  - **Headers:** `Set-Cookie: refreshToken=<token>; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/refresh; Max-Age=2592000`
+  - **Headers:** `Set-Cookie: refreshToken=<token>; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/; Max-Age=2592000`
   - **Body:**
 
     JSON
@@ -159,7 +159,7 @@ JSON
 **Responses:**
 
 - **200 OK**
-  - **Headers:** `Set-Cookie: refreshToken=<new_refresh_token>; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/refresh; Max-Age=2592000`
+  - **Headers:** `Set-Cookie: refreshToken=<new_refresh_token>; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/; Max-Age=2592000`
   - **Body:**
 
     JSON
@@ -204,7 +204,7 @@ JSON
 **Responses:**
 
 - **200 OK**
-  - **Headers:** `Set-Cookie: refreshToken=; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/refresh; Max-Age=0`
+  - **Headers:** `Set-Cookie: refreshToken=; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/; Max-Age=0`
   - **Body:**
 
     JSON
@@ -314,7 +314,7 @@ Server enforces:
 
 ## Files
 
-### GET /api/files/{fileIdOrName}
+### GET /api/files/{fileId}
 
 - JWT required
 - Authorization matrix:
@@ -333,7 +333,7 @@ Server enforces:
 
 - title, authorName: non-empty, ≤255
 - abstractText: non-empty
-- submissionDate: valid ISO date
+- submissionDate: YYYY-MM-DD format
 - departmentId: must exist
 - file: PDF or DOCX ≤20MB
 
