@@ -7,6 +7,7 @@
   - [Page Access](#page-access)
 - [Frontend Considerations](#frontend-considerations)
 - [Tech Stack](#tech-stack)
+- [File Storage Strategy](#file-storage-strategy)
 - [Database Schema](#database-schema)
 - [Domain Types (Frontend)](#domain-types-frontend)
 - [API Endpoints (Summary)](#api-endpoints-summary)
@@ -91,6 +92,17 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 - Google ID Token verification for SSO
 - springdoc-openapi for Swagger (later)
 - Docker (deployment)
+
+---
+
+## File Storage Strategy
+
+- **Local Filesystem:** PDF files are stored directly on the server's local filesystem using Java File I/O operations.
+- **Docker Volume Mount:** A host directory is mounted to the container (e.g., `-v /opt/repo/data:/app/uploads`) to persist files across container restarts.
+- **Zero Latency:** No network round-trips required to fetch files, resulting in optimal performance.
+- **Zero Cost:** No external storage services or cloud storage fees required.
+- **Simplicity:** Straightforward implementation using standard Java file operations.
+- **Backup Strategy:** Files are stored in a designated directory that can be easily backed up by archiving the entire folder.
 
 ---
 
