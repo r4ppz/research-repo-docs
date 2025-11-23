@@ -38,12 +38,12 @@
 
 ## Roles and Access Rules
 
-| Role             | Paper Metadata             | Download/View                                   | CRUD | Request Approval | Archived Behavior                                    |
-| ---------------- | -------------------------- | ----------------------------------------------- | ---- | ---------------- | ---------------------------------------------------- |
-| STUDENT          | Active papers only         | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Cannot access archived                               |
+| Role             | Paper Metadata             | Download/View                                   | CRUD | Request Approval | Archived Behavior                                            |
+| ---------------- | -------------------------- | ----------------------------------------------- | ---- | ---------------- | ------------------------------------------------------------ |
+| STUDENT          | Active papers only         | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Cannot access archived                                       |
 | TEACHER          | All papers (metadata only) | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Sees metadata for archived, cannot request/download archived |
-| DEPARTMENT_ADMIN | Papers in their department | Full access (active + archived)                 | ✅   | ✅               | Can archive/unarchive papers                         |
-| SUPER_ADMIN      | All papers                 | Full access                                     | ✅   | ✅               | Can archive/unarchive papers globally                |
+| DEPARTMENT_ADMIN | Papers in their department | Full access (active + archived)                 | ✅   | ✅               | Can archive/unarchive papers                                 |
+| SUPER_ADMIN      | All papers                 | Full access                                     | ✅   | ✅               | Can archive/unarchive papers globally                        |
 
 ---
 
@@ -91,87 +91,134 @@ interface DocumentRequest {
 
 ## Authentication
 
+The Refresh Token is **never** exposed in the JSON body. It is handled strictly via HTTP Cookies.
+
 ### POST /api/auth/google
 
-- **Public.** Exchanges Google ID token for JWT access token and refresh token.
+- **Public.** Exchanges Google ID token for JWT access token and sets the refresh token cookie.
 
-Request:
+**Request:**
 
-```json
+JSON
+
+```
 { "code": "OAuthCode" }
+
 ```
 
-Responses:
+**Responses:**
 
 - **200 OK**
+  - **Headers:** `Set-Cookie: refreshToken=<token>; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/refresh; Max-Age=2592000`
+  - **Body:**
 
-```json
-{
-  "accessToken": "<jwt_token>",
-  "refreshToken": "<refresh_token>",
-  "user": {
-    "userId": 1,
-    "email": "alice@acdeducation.com",
-    "fullName": "Alice Student",
-    "role": "STUDENT",
-    "department": null
-  }
-}
-```
+    JSON
+
+    ```
+    {
+      "accessToken": "<jwt_token>",
+      "user": {
+        "userId": 1,
+        "email": "alice@acdeducation.com",
+        "fullName": "Alice Student",
+        "role": "STUDENT",
+        "department": null
+      }
+    }
+
+    ```
 
 - **400 INVALID_TOKEN**
 
-```json
-{ "error": "Invalid Google token", "code": "INVALID_TOKEN" }
-```
+  JSON
+
+  ```
+  { "error": "Invalid Google token", "code": "INVALID_TOKEN" }
+
+  ```
 
 - **403 DOMAIN_NOT_ALLOWED**
 
-```json
-{ "error": "Email domain not allowed", "code": "DOMAIN_NOT_ALLOWED" }
-```
+  JSON
+
+  ```
+  { "error": "Email domain not allowed", "code": "DOMAIN_NOT_ALLOWED" }
+
+  ```
 
 ### POST /api/auth/refresh
 
-- **Public.** Exchanges refresh token for new access token.
-- Requires refresh token in request body
+- **Public.** Exchanges the cookie-based refresh token for a new access token and rotates the refresh token.
+- **Requires `Cookie` header** containing the refresh token.
 
-Request:
+**Request:**
 
-```json
-{ "refreshToken": "<refresh_token>" }
-```
+- **Headers:** `Cookie: refreshToken=<refresh_token>`
+- **Body:** _(Empty)_
 
-Responses:
+**Responses:**
 
 - **200 OK**
+  - **Headers:** `Set-Cookie: refreshToken=<new_refresh_token>; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/refresh; Max-Age=2592000`
+  - **Body:**
 
-```json
-{
-  "accessToken": "<new_jwt_token>",
-  "refreshToken": "<new_refresh_token>"
-}
-```
+    JSON
 
-- **400 INVALID_TOKEN**
+    ```
+    {
+      "accessToken": "<new_jwt_token>"
+    }
 
-```json
-{ "error": "Invalid refresh token", "code": "INVALID_TOKEN" }
-```
+    ```
 
 - **401 UNAUTHORIZED**
+  - Occurs if the cookie is missing, expired, or revoked.
 
-```json
-{ "error": "Refresh token expired", "code": "REFRESH_TOKEN_REVOKED" }
-```
+  JSON
+
+  ```
+  { "error": "Refresh token expired or missing", "code": "REFRESH_TOKEN_REVOKED" }
+
+  ```
 
 - **409 CONFLICT**
+  - Occurs if the token has already been used (Reuse Detection).
 
-```json
-{ "error": "Potential token theft detected", "code": "REFRESH_TOKEN_STOLEN" }
-```
+  JSON
 
-Notes: Returns a new access token and a new refresh token to maintain continuous session. The old refresh token is invalidated. If a refresh token is used twice, all user tokens are revoked as a security measure.
+  ```
+  { "error": "Potential token theft detected", "code": "REFRESH_TOKEN_STOLEN" }
+
+  ```
+
+### POST /api/auth/logout
+
+- **Public.** Logs the user out by revoking the refresh token in the DB and clearing the cookie in the browser.
+- **Requires `Cookie` header.**
+
+**Request:**
+
+- **Headers:** `Cookie: refreshToken=<refresh_token>`
+- **Body:** _(Empty)_
+
+**Responses:**
+
+- **200 OK**
+  - **Headers:** `Set-Cookie: refreshToken=; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/refresh; Max-Age=0`
+  - **Body:**
+
+    JSON
+
+    ```
+    { "message": "Logged out successfully" }
+
+    ```
+
+**Notes:**
+
+1.  **Rotation:** The old refresh token (from the request cookie) is invalidated. A new one is issued in the response `Set-Cookie` header.
+2.  **Security:** The browser manages the cookie storage automatically. The frontend must **not** attempt to read or store this token manually.
+3.  **Logout:** The `Max-Age=0` directive in the logout response forces the browser to delete the cookie immediately.
 
 ---
 

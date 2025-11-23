@@ -1,5 +1,21 @@
 # Research Repository — Architecture & Implementation Spec
 
+<!--toc:start-->
+
+- [Research Repository — Architecture & Implementation Spec](#research-repository-architecture-implementation-spec)
+  - [High-level Summary](#high-level-summary)
+  - [Roles & Capabilities](#roles-capabilities)
+    - [Page Access](#page-access)
+  - [Frontend Considerations](#frontend-considerations)
+  - [Tech Stack](#tech-stack)
+  - [Database Schema](#database-schema)
+  - [Domain Types (Frontend)](#domain-types-frontend)
+  - [API Endpoints (Summary)](#api-endpoints-summary)
+  - [AuthN/AuthZ](#authnauthz)
+  - [Security](#security)
+  - [Error & Validation Conventions](#error-validation-conventions)
+  <!--toc:end-->
+
 This spec is intentionally blunt and detailed. It is the **single source of truth** for backend and frontend data design, API contracts, and authorization logic. All changes must be documented here first, then implemented.
 
 ---
@@ -121,7 +137,7 @@ CREATE TABLE document_requests (
 );
 ```
 
-For the full database migration, see the [Database Migration](/docs/database_migration.md).
+For the full database migration, see the [Database Migration](docs/database_migration.md).
 
 ---
 
@@ -182,6 +198,7 @@ export interface FilterOptions {
 
 - `POST /api/auth/google` → Google ID token (returns access and refresh tokens)
 - `POST /api/auth/refresh` → Refresh access token using refresh token
+- `POST /api/auth/logout` → Revoke refresh token and clear cookie
 
 **User**
 
@@ -217,7 +234,7 @@ export interface FilterOptions {
 - `PUT /api/admin/papers/{id}/unarchive`
 - `GET /api/admin/papers` → list admin papers with filters
 
-For detailed API documentation including request/response schemas, error codes, and authorization requirements, see the full [API Contract](/docs/api_contract.md).
+For detailed API documentation including request/response schemas, error codes, and authorization requirements, see the full [API Contract](docs/api_contract.md).
 
 ---
 
@@ -226,76 +243,61 @@ For detailed API documentation including request/response schemas, error codes, 
 - **Authentication (AuthN)**:
   - Frontend obtains **Google OAuth authorization code** via Google Identity Services.
   - Backend exchanges the code for:
-    - Access token (JWT) - short-lived (60 minutes)
-    - Refresh token - long-lived (30 days), stored in database
+    - Access token (JWT) - short-lived (60 minutes), returned in JSON body.
+    - Refresh token - long-lived (30 days), **returned in `httpOnly`, `Secure`, `SameSite=Strict` cookie**.
+
   - Backend verifies the **Google ID token**:
-    - Signature
-    - Issuer (`accounts.google.com`)
-    - Audience (your Google client ID)
-    - Expiry
-    - Domain enforced: must be `acdeducation.com`
+    - Signature, Issuer, Audience, Expiry.
+    - Domain enforced: must be `acdeducation.com`.
 
   - On first login, a new user record is created with default role `STUDENT`.
 
-- **Token Refresh Flow**:
-  - When access token expires, frontend calls `/api/auth/refresh` with the refresh token
-  - Backend validates refresh token against database records (checks expiration)
-  - For security, if a refresh token is used twice (indicating potential theft), all tokens for that user are revoked
-  - Backend generates new access token and new refresh token
-  - Old refresh token is replaced with new one (rotation)
-  - New tokens are returned to frontend for continued session
+- **Token Refresh Flow (Cookie-Based)**:
+  - When access token expires, frontend calls `/api/auth/refresh`.
+  - **Browser automatically attaches the `refreshToken` cookie** (no manual storage in React).
+  - Backend validates refresh token against database records (checks expiration).
+  - **Reuse Detection:** If a refresh token is used twice (indicating theft), all tokens for that user are revoked.
+  - Backend generates new access token and new refresh token.
+  - **Rotation:** Old refresh token is revoked; new refresh token is sent via a new `Set-Cookie` header.
+  - New access token is returned in JSON body.
+
+- **Logout Flow**:
+  - Frontend calls `/api/auth/logout`.
+  - **Browser automatically attaches the `refreshToken` cookie**.
+  - Backend finds the token in the database and deletes it (server-side revocation).
+  - Backend responds with a `Set-Cookie` header that overwrites the cookie with an immediate expiration (`Max-Age=0`), clearing it from the browser.
 
 - **Manual Role Assignment**:
-  - Teacher and admin emails are inserted manually via:
-    - Flyway migration
-    - OR backend seed script
-
+  - Teacher and admin emails are inserted manually via Flyway migration or backend seed script.
   - Roles are `DEPARTMENT_ADMIN` (with department) or `SUPER_ADMIN` (no department).
 
 - **Access Token Structure (JWT)**:
-  - **Claims**:
-    - `sub`: `userId` (primary key from users table)
-    - `email`: user email
-    - `fullName`: user full name
-    - `role`: `STUDENT` | `DEPARTMENT_ADMIN` | `SUPER_ADMIN`
-    - `departmentId`: nullable, only for admins
-    - `iat`: issued-at timestamp
-    - `exp`: expiry timestamp
-    - `iss`: issuer, e.g., `"acdeducation-repo-backend"`
-
-  - Lifetime: 60 minutes (configurable)
-  - Backend uses `sub` for all RBAC and department-scoped queries; other claims are for convenience/UI.
+  - **Claims**: `sub` (userId), `email`, `fullName`, `role`, `departmentId`, `iat`, `exp`, `iss`.
+  - Lifetime: 60 minutes.
+  - Backend uses `sub` for all RBAC/ABAC queries.
 
 - **Refresh Token**:
-  - Secure random token string stored in database with UNIQUE constraint
-  - Lifetime: 30 days (configurable)
-  - Stored with user_id reference and expiration timestamp
-  - Primary security relies on expiration with reuse detection for theft protection
+  - Opaque, unique string stored in database.
+  - Lifetime: 30 days.
+  - **Transport:** Strictly `httpOnly` Cookie (never in JSON body).
+  - Primary security relies on expiration + rotation + reuse detection.
 
 - **Authorization (AuthZ)**:
   - Spring Security + service-layer enforcement.
-  - Department scoping applied for `DEPARTMENT_ADMIN` actions.
-  - File access rules:
-    - `SUPER_ADMIN`: unrestricted
-    - `DEPARTMENT_ADMIN`: full access to papers in their department, including archived
-    - `STUDENT`: access only to non-archived papers with `ACCEPTED` request
-    - `TEACHER`: access only to non-archived papers with `ACCEPTED` request
-
-  - Never trust frontend; all enforcement occurs on backend.
+  - File access rules strictly enforced on backend (Student/Teacher require `ACCEPTED` request + non-archived paper).
 
 ---
 
 ## Security
 
-- HTTPS for production
-- CORS: dev allowed; prod strict
-- CSRF: if cookies used
-- Rate limiting: login, create-request, and token refresh endpoints (MVP)
-- File validation: MIME + size limits (e.g., 20MB)
-- Logging: audit decisions including token refresh attempts
-- Content Security Policy (frontend)
-- Refresh token rotation: new refresh token issued on each use; old token replaced
-- Refresh token reuse detection: if a token is used twice, all user tokens are revoked as security measure
+- **HTTPS** required (Cookies must be `Secure`).
+- **CORS**: Dev allowed; Prod strict.
+- **Cookies**: `HttpOnly`, `Secure`, `SameSite=Strict` (Mitigates XSS and CSRF).
+- **Rate limiting**: Login, create-request, and refresh endpoints.
+- **File validation**: MIME + size limits (20MB).
+- **Logging**: Audit decisions including token refresh attempts.
+- **Refresh token rotation**: New token issued on every use; old token invalidated.
+- **Refresh token reuse detection**: Immediate revocation of all user sessions if a used token is presented again.
 
 ---
 
