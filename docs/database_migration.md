@@ -12,7 +12,9 @@ CREATE TYPE request_status AS ENUM ('PENDING', 'ACCEPTED', 'REJECTED');
 -- DEPARTMENTS
 CREATE TABLE departments (
     department_id SERIAL PRIMARY KEY,
-    department_name VARCHAR(64) UNIQUE NOT NULL
+    department_name VARCHAR(64) UNIQUE NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
 );
 
 -- USERS

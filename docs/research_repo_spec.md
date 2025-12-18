@@ -1,22 +1,5 @@
 # Research Repository — Architecture & Implementation Spec
 
-<!--toc:start-->
-
-- [High-level Summary](#high-level-summary)
-- [Roles & Capabilities](#roles-capabilities)
-  - [Page Access](#page-access)
-- [Frontend Considerations](#frontend-considerations)
-- [Tech Stack](#tech-stack)
-- [File Storage Strategy](#file-storage-strategy)
-- [Database Schema](#database-schema)
-- [Domain Types (Frontend)](#domain-types-frontend)
-- [API Endpoints (Summary)](#api-endpoints-summary)
-- [AuthN/AuthZ](#authnauthz)
-- [Security](#security)
-- [Configuration](#configuration)
-- [Error & Validation Conventions](#error-validation-conventions)
-<!--toc:end-->
-
 This spec is intentionally blunt and detailed. It is the **single source of truth** for backend and frontend data design, API contracts, and authorization logic. All changes must be documented here first, then implemented.
 
 ---
@@ -321,36 +304,123 @@ For detailed API documentation including request/response schemas, error codes, 
 
 ---
 
+## Error & Validation Conventions
+
+### Canonical Error Response (Authoritative)
+
+All error responses **MUST** conform to this structure:
+
+```json
+{
+  "status": 403, // Optional, might delete later
+  "code": "ACCESS_DENIED",
+  "message": "You do not have permission to perform this action.",
+  "details": [
+    {
+      "field": "paperId",
+      "message": "Paper belongs to another department"
+    }
+  ],
+  "traceId": "7f2c9b18c6e4"
+}
+```
+
+### Field Semantics
+
+| Field     | Type    | Required | Description                                                        |
+| --------- | ------- | -------- | ------------------------------------------------------------------ |
+| `status`  | integer | No       | HTTP status code (echoed for logging convenience)                  |
+| `code`    | string  | Yes      | Machine-readable error code (stable across versions)               |
+| `message` | string  | Yes      | User-safe, localized-ready error message                           |
+| `details` | array   | No       | Structured validation errors (array of `{field, message}` objects) |
+| `traceId` | string  | No       | Correlation ID for log lookup and support                          |
+
+### Contract Guarantees
+
+1. `code` is **always present** and stable across API versions
+2. `message` is **always user-safe** (no stack traces, SQL errors, or file paths)
+3. `details` is **structured** (never free-form strings)
+4. Frontend **MUST route on `code`** for logic; `message` MAY be used for display
+
+### HTTP Status to Error Code Mapping
+
+| HTTP | Condition                                                                                      |
+| ---- | ---------------------------------------------------------------------------------------------- |
+| 400  | Validation error or malformed request                                                          |
+| 401  | Missing/invalid access token (JWT) or expired refresh token                                    |
+| 403  | Role/department scope failed or domain not allowed                                             |
+| 404  | Not found (paper, request, file; also used to prevent leaking archived papers)                 |
+| 409  | Duplicate active request (PENDING or ACCEPTED for same user+paper) or invalid state transition |
+| 413  | File too large                                                                                 |
+| 415  | Unsupported file type                                                                          |
+| 429  | Rate limit exceeded                                                                            |
+| 500  | Internal server error or file storage failure                                                  |
+| 503  | Service unavailable (database or external service down)                                        |
+
+### Complete Error Code Registry
+
+| Code                   | HTTP | Category | Meaning                                                         |
+| ---------------------- | ---- | -------- | --------------------------------------------------------------- |
+| VALIDATION_ERROR       | 400  | Input    | Field-level validation failed                                   |
+| INVALID_REQUEST        | 400  | Input    | Malformed JSON or missing required fields                       |
+| UNAUTHENTICATED        | 401  | Auth     | Missing or invalid JWT access token                             |
+| REFRESH_TOKEN_REVOKED  | 401  | Auth     | Refresh token is invalid, expired, or revoked                   |
+| ACCESS_DENIED          | 403  | AuthZ    | User lacks required role or department scope                    |
+| DOMAIN_NOT_ALLOWED     | 403  | Auth     | Email domain not in whitelist                                   |
+| RESOURCE_NOT_FOUND     | 404  | Data     | Resource does not exist (or user cannot know it exists)         |
+| RESOURCE_NOT_AVAILABLE | 404  | Data     | Resource exists but is archived/inaccessible                    |
+| DUPLICATE_REQUEST      | 409  | Business | Active request (PENDING/ACCEPTED) already exists for this paper |
+| REQUEST_ALREADY_FINAL  | 409  | Business | Cannot modify request in terminal state                         |
+| FILE_TOO_LARGE         | 413  | Upload   | File exceeds 20MB limit                                         |
+| UNSUPPORTED_MEDIA_TYPE | 415  | Upload   | File is not PDF or DOCX                                         |
+| RATE_LIMIT_EXCEEDED    | 429  | System   | Too many requests in time window                                |
+| INTERNAL_ERROR         | 500  | System   | Unhandled server error                                          |
+| FILE_STORAGE_ERROR     | 500  | System   | File missing on disk or I/O failure                             |
+| SERVICE_UNAVAILABLE    | 503  | System   | Database or external service down                               |
+
+### Security Considerations for Error Handling
+
+1. **Information Leakage Prevention**
+   - `RESOURCE_NOT_AVAILABLE` (archived papers) returns HTTP 404, not 403, to prevent enumeration attacks
+   - Students receive identical 404 responses for non-existent papers and papers they cannot access
+   - Error messages never reveal internal paths, SQL queries, or stack traces
+   - All refresh token failures return identical generic messages
+
+2. **Defensive Error Handling**
+   - All unhandled exceptions are caught by global exception handler and mapped to `INTERNAL_ERROR`
+   - Stack traces are logged server-side but never included in API response
+   - Database constraint violations are mapped to appropriate business error codes (e.g., duplicate request → `DUPLICATE_REQUEST`)
+   - File path traversal attempts are caught and return `INVALID_REQUEST`
+
+3. **Frontend Error Routing**
+   - Validation errors (`VALIDATION_ERROR`): Show inline field errors, no toast
+   - Auth errors (`UNAUTHENTICATED`, `REFRESH_TOKEN_REVOKED`): Redirect to login, no message
+   - AuthZ errors (`ACCESS_DENIED`): Show dedicated 403 page
+   - Resource errors (`RESOURCE_NOT_FOUND`, `RESOURCE_NOT_AVAILABLE`): Show 404 page or archived badge, no toast
+   - Business errors (`DUPLICATE_REQUEST`, `REQUEST_ALREADY_FINAL`): Page-level alert
+   - System errors (`INTERNAL_ERROR`, `FILE_STORAGE_ERROR`): Global error UI with trace ID
+   - Rate limit (`RATE_LIMIT_EXCEEDED`): Show countdown and disable submission
+
+4. **Audit Requirements**
+   - All `FILE_STORAGE_ERROR` occurrences trigger monitoring alerts (potential disk failure)
+   - All `INTERNAL_ERROR` responses logged with full stack trace server-side
+   - All authentication failures logged for security monitoring
+   - Rate limit violations logged for abuse detection
+
+For complete endpoint-specific error codes and frontend rendering rules, see the [API Contract](/docs/api_contract.md).
+
+---
+
 ## Configuration
 
 ### Development vs Production Environment
 
 **Cookie Settings:**
+
 - **Production:** `SameSite=Strict`, `Secure=True`
 - **Development:** `SameSite=Lax`, `Secure=False` (to allow cross-origin requests between localhost:5173 and localhost:8080)
 
 **CORS Settings:**
+
 - **Development:** Allow requests from `http://localhost:5173`
 - **Production:** Restrict to frontend domain only
-
-## Error & Validation Conventions
-
-| HTTP    | Condition                                                                                             |
-| ------- | ----------------------------------------------------------------------------------------------------- |
-| 400     | Validation error                                                                                      |
-| 401     | Missing/invalid access token (JWT) or expired refresh token                                           |
-| 403     | Role/department scope failed                                                                          |
-| 404     | Not found (paper, request, file; also used to prevent leaking archived papers)                        |
-| 409     | Duplicate active request (PENDING or ACCEPTED for same user+paper) - prevented by database constraint |
-| 413/415 | File upload issues                                                                                    |
-
-Canonical response:
-
-```json
-{
-  "error": "Message",
-  "code": "OPTIONAL_CODE",
-  "details": [],
-  "traceId": "..."
-}
-```
