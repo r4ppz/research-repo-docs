@@ -57,12 +57,12 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 ## Frontend Considerations
 
 - Common API endpoints for filters (all roles):
-  - `GET /api/filters/years`
-  - `GET /api/filters/departments`
-  - `GET /api/filters/dates`
+  - `GET /api/filters/years` - Returns available years with role-based scoping
+  - `GET /api/filters/departments` - Returns departments with role-based access
+
+- **Note:** The `/api/filters/dates` endpoint has been removed as it was redundant with year filtering.
 
 - Teachers see archived papers metadata but can only download files if they have an ACCEPTED request for non-archived papers.
-
 - Students see only non-archived papers; download restricted by request status and archive state.
 - Teachers can request non-archived papers only (same validation rules as students: paper must exist, not be archived, with only one active request per paper). Teachers can view archived paper metadata but cannot request archived papers.
 - Students and teachers can delete their own REJECTED requests to submit new ones.
@@ -183,12 +183,20 @@ export interface DocumentRequest {
 }
 
 export interface FilterOptions {
-  years: number[];
-  departments: Department[];
-  dateRange: {
-    minDate: string;
-    maxDate: string;
-  };
+  years: number[];  // Array of available years, sorted descending
+  departments: Department[];  // Array of departments with role-based filtering
+}
+
+// Query parameters for GET /api/papers
+export interface PaperQueryParams {
+  page?: number;
+  size?: number;
+  search?: string;  // Full-text search
+  departmentId?: string;  // Comma-separated IDs
+  year?: number;
+  archived?: boolean;
+  sortBy?: 'submissionDate' | 'title' | 'authorName';
+  sortOrder?: 'asc' | 'desc';
 }
 ```
 
@@ -208,14 +216,13 @@ export interface FilterOptions {
 
 **Filters**
 
-- `GET /api/filters/years`
-- `GET /api/filters/departments`
-- `GET /api/filters/dates`
+- `GET /api/filters/years` - Available submission years (role-scoped)
+- `GET /api/filters/departments` - Available departments (role-scoped)
 
 **Papers**
 
-- `GET /api/papers` → paginated, filters applied
-- `GET /api/papers/{id}` → specific paper
+- `GET /api/papers` - Paginated list with search, filtering, and sorting support
+- `GET /api/papers/{id}` - Specific paper details
 
 **Student/Teacher Requests**
 

@@ -595,11 +595,47 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 ## Filters
 
-- `GET /api/filters/years` → number[]
-- `GET /api/filters/departments` → Department[]
-- `GET /api/filters/dates` → `{ minDate: string, maxDate: string }`
+### GET /api/filters/years
 
-All require JWT. Students cannot filter by archived.
+Returns available submission years for filtering.
+
+**Response:**
+```json
+[2024, 2023, 2022, 2021]
+```
+
+- Sorted descending (newest first)
+- Only includes years with papers the user can access
+- Students: Only years with non-archived papers
+- Teachers: All years
+- Admins: Scoped to department
+
+**Error Codes:**
+- **401 UNAUTHENTICATED** - Missing or invalid JWT
+
+---
+
+### GET /api/filters/departments
+
+Returns available departments.
+
+**Response:**
+```json
+[
+  { "departmentId": 1, "departmentName": "Computer Science" },
+  { "departmentId": 2, "departmentName": "Mathematics" }
+]
+```
+
+- Sorted alphabetically by department name
+- Students/Teachers: All departments
+- Department Admins: Only their department
+- Super Admins: All departments
+
+**Error Codes:**
+- **401 UNAUTHENTICATED** - Missing or invalid JWT
+
+**Note:** The `/api/filters/dates` endpoint has been **removed** as it was redundant with `/api/filters/years`.
 
 ---
 
@@ -607,15 +643,84 @@ All require JWT. Students cannot filter by archived.
 
 ### GET /api/papers
 
-- JWT required
-- Query params: `page`, `size`, `departmentId` (optional), `archived` (optional)
-- **Student**: cannot use `archived` param → 403 ACCESS_DENIED
-- **Admin**: can filter by department and archived
-- Response: paginated `ResearchPaper[]`
+Retrieve paginated list of research papers with optional filtering, searching, and sorting.
+
+**Query Parameters:**
+
+| Parameter      | Type    | Required | Description                                                                 |
+| -------------- | ------- | -------- | --------------------------------------------------------------------------- |
+| `page`         | integer | No       | Zero-based page number (default: 0)                                         |
+| `size`         | integer | No       | Page size (default: 20, max: 100)                                           |
+| `search`       | string  | No       | Full-text search across title, author name, and abstract (case-insensitive) |
+| `departmentId` | string  | No       | Comma-separated department IDs (e.g., "1,3,5")                              |
+| `year`         | integer | No       | Filter by submission year (e.g., 2023)                                      |
+| `archived`     | boolean | No       | Filter by archived status (forbidden for students, returns 403)             |
+| `sortBy`       | string  | No       | Sort field: `submissionDate` (default), `title`, `authorName`               |
+| `sortOrder`    | string  | No       | Sort direction: `desc` (default), `asc`                                     |
+
+**Examples:**
+
+```
+GET /api/papers?search=neural%20networks&departmentId=1,2&year=2023&sortBy=submissionDate&sortOrder=desc
+GET /api/papers?search=machine%20learning&sortBy=title&sortOrder=asc
+GET /api/papers?departmentId=3&year=2024&page=0&size=50
+```
+
+**Response:**
+
+```json
+{
+  "content": [
+    {
+      "paperId": 1,
+      "title": "Neural Networks in Computer Vision",
+      "authorName": "Dr. Maria Santos",
+      "abstractText": "This paper explores...",
+      "department": {
+        "departmentId": 1,
+        "departmentName": "Computer Science"
+      },
+      "submissionDate": "2023-09-15",
+      "filePath": "2023/dept_cs/paper_1.pdf",
+      "archived": false,
+      "archivedAt": null
+    }
+  ],
+  "totalElements": 47,
+  "totalPages": 3,
+  "number": 0,
+  "size": 20
+}
+```
+
+**Search Behavior:**
+- Case-insensitive search using SQL `ILIKE` or full-text search
+- Searches `title`, `author_name`, and `abstract_text` fields
+- Empty search parameter returns all papers (with other filters applied)
+- Special characters are escaped to prevent SQL injection
+
+**Authorization:**
+- **Students**: Can only see non-archived papers
+- **Teachers**: Can see all papers metadata (including archived)
+- **Department Admins**: Scoped to their department
+- **Super Admins**: Full access to all papers
+
+**Error Codes:**
+
+| Condition                         | HTTP | Code            | Message                                          |
+| --------------------------------- | ---- | --------------- | ------------------------------------------------ |
+| Student uses `archived` parameter | 403  | ACCESS_DENIED   | "Students cannot filter by archive status"       |
+| Invalid `sortBy` value            | 400  | INVALID_REQUEST | "Invalid sort field. Must be: submissionDate, title, authorName" |
+| Invalid `sortOrder` value         | 400  | INVALID_REQUEST | "Invalid sort order. Must be: asc, desc"         |
+| Invalid `year` format             | 400  | INVALID_REQUEST | "Year must be a four-digit number"               |
+| Invalid `size` value              | 400  | INVALID_REQUEST | "Page size must be between 1 and 100"            |
+| Missing JWT                       | 401  | UNAUTHENTICATED | "Authentication required"                        |
+
+---
 
 ### GET /api/papers/{id}
 
-- See endpoint-specific error codes above for detailed behavior
+- See endpoint-specific error codes section for detailed behavior
 
 ---
 
