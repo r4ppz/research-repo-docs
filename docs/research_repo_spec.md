@@ -57,9 +57,23 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 ## Frontend Considerations
 
 - Common API endpoints for filters (all roles):
-  - `GET /api/filters/years`
-  - `GET /api/filters/departments`
-  - `GET /api/filters/dates`
+  - `GET /api/filters/years` → returns years with role-based scoping
+  - `GET /api/filters/departments` → returns departments alphabetically sorted
+
+- Search and filtering capabilities:
+  - Full-text search across paper title, author name, and abstract
+  - Multi-department filtering with comma-separated department IDs (e.g., "1,3,5")
+  - Year-based filtering for submission dates
+  - Sorting options: by submission date (default), title, or author name
+  - Sort order: ascending or descending (descending is default)
+
+- Frontend implementation recommendations:
+  - Use debouncing (300ms) for search input to reduce API calls
+  - Multi-select dropdown for departments with checkboxes
+  - Single-select dropdown for year filter
+  - Sort dropdown with 6 options: newest first, oldest first, title A-Z, title Z-A, author A-Z, author Z-A
+  - Display "Clear all filters" button when any filter is active
+  - Show active filter count badge
 
 - Teachers see archived papers metadata but can only download files if they have an ACCEPTED request for non-archived papers.
 
@@ -185,10 +199,6 @@ export interface DocumentRequest {
 export interface FilterOptions {
   years: number[];
   departments: Department[];
-  dateRange: {
-    minDate: string;
-    maxDate: string;
-  };
 }
 ```
 
@@ -208,13 +218,12 @@ export interface FilterOptions {
 
 **Filters**
 
-- `GET /api/filters/years`
-- `GET /api/filters/departments`
-- `GET /api/filters/dates`
+- `GET /api/filters/years` → years with papers (role-based scoping)
+- `GET /api/filters/departments` → departments with papers (alphabetically sorted)
 
 **Papers**
 
-- `GET /api/papers` → paginated, filters applied
+- `GET /api/papers` → paginated with search, multi-department filter, year filter, and sorting
 - `GET /api/papers/{id}` → specific paper
 
 **Student/Teacher Requests**

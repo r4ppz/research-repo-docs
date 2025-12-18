@@ -466,6 +466,11 @@ interface ApiError {
   details?: Array<{ field: string; message: string }>;
   traceId?: string;
 }
+
+interface FilterOptions {
+  years: number[];
+  departments: Department[];
+}
 ```
 
 ---
@@ -595,11 +600,59 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 ## Filters
 
-- `GET /api/filters/years` → number[]
-- `GET /api/filters/departments` → Department[]
-- `GET /api/filters/dates` → `{ minDate: string, maxDate: string }`
+### GET /api/filters/years
 
-All require JWT. Students cannot filter by archived.
+- **Authentication:** JWT required
+- **Response:** `number[]` - Array of years with papers
+
+**Authorization Scoping:**
+
+- **STUDENT**: Only years with non-archived papers
+- **TEACHER**: All years with papers (including archived)
+- **DEPARTMENT_ADMIN**: Years with papers in their department (including archived)
+- **SUPER_ADMIN**: All years with papers (including archived)
+
+**Response Example:**
+
+```json
+[2025, 2024, 2023, 2022]
+```
+
+**Notes:**
+
+- Returns years in descending order (newest first)
+- Empty array if no papers exist within user's scope
+- Years are extracted from paper `submissionDate` field
+
+---
+
+### GET /api/filters/departments
+
+- **Authentication:** JWT required
+- **Response:** `Department[]` - Array of departments
+
+**Authorization Scoping:**
+
+- **STUDENT**: All departments (students can view papers from any department)
+- **TEACHER**: All departments (teachers can view papers from any department)
+- **DEPARTMENT_ADMIN**: Only their assigned department
+- **SUPER_ADMIN**: All departments
+
+**Response Example:**
+
+```json
+[
+  { "departmentId": 1, "departmentName": "Computer Science" },
+  { "departmentId": 2, "departmentName": "Mathematics" },
+  { "departmentId": 3, "departmentName": "Physics" }
+]
+```
+
+**Notes:**
+
+- Returns departments in alphabetical order by `departmentName`
+- Only includes departments that have at least one paper within user's scope
+- Empty array if no departments have accessible papers
 
 ---
 
@@ -607,11 +660,118 @@ All require JWT. Students cannot filter by archived.
 
 ### GET /api/papers
 
-- JWT required
-- Query params: `page`, `size`, `departmentId` (optional), `archived` (optional)
-- **Student**: cannot use `archived` param → 403 ACCESS_DENIED
-- **Admin**: can filter by department and archived
-- Response: paginated `ResearchPaper[]`
+- **Authentication:** JWT required
+- **Response:** Paginated `ResearchPaper[]`
+
+**Query Parameters:**
+
+| Parameter      | Type   | Required | Description                                                                    |
+| -------------- | ------ | -------- | ------------------------------------------------------------------------------ |
+| `page`         | number | No       | Zero-indexed page number (default: 0)                                          |
+| `size`         | number | No       | Results per page (default: 20, max: 100)                                       |
+| `search`       | string | No       | Full-text search across title, author name, and abstract (case-insensitive)    |
+| `departmentId` | string | No       | Comma-separated list of department IDs (e.g., "1,3,5") for multi-select filter |
+| `year`         | number | No       | Filter by submission year (4-digit year, e.g., 2023)                           |
+| `archived`     | string | No       | Filter archived status: "true" or "false" (Admin-only)                         |
+| `sortBy`       | string | No       | Sort field: `submissionDate` (default), `title`, `authorName`                  |
+| `sortOrder`    | string | No       | Sort direction: `desc` (default), `asc`                                        |
+
+**Search Behavior:**
+
+- **Case-insensitive** matching across `title`, `authorName`, and `abstractText` fields
+- **SQL injection protection:** All search terms are parameterized
+- **Empty search:** Returns all papers within user's scope (no filtering applied)
+- **Special characters:** Handled safely; wildcards are not supported
+- **Partial matching:** Searches for substring matches (e.g., "machine" matches "Machine Learning")
+- **Note:** Field names follow API camelCase convention; backend maps to database snake_case fields (`author_name`, `abstract_text`)
+
+**Authorization Scoping:**
+
+| Role             | Scope                                           | Can Use `archived` Param |
+| ---------------- | ----------------------------------------------- | ------------------------ |
+| STUDENT          | Non-archived papers only                        | ❌ (403 ACCESS_DENIED)   |
+| TEACHER          | All papers (metadata only)                      | ❌ (403 ACCESS_DENIED)   |
+| DEPARTMENT_ADMIN | Papers in their department (active + archived)  | ✅                       |
+| SUPER_ADMIN      | All papers across all departments               | ✅                       |
+
+**Response Example:**
+
+```json
+{
+  "content": [
+    {
+      "paperId": 123,
+      "title": "Machine Learning in Healthcare",
+      "authorName": "Dr. Jane Smith",
+      "abstractText": "This paper explores the application of machine learning...",
+      "department": {
+        "departmentId": 1,
+        "departmentName": "Computer Science"
+      },
+      "submissionDate": "2023-09-15",
+      "filePath": "2023/dept_cs/paper_123.pdf",
+      "archived": false,
+      "archivedAt": null
+    }
+  ],
+  "totalElements": 45,
+  "totalPages": 3,
+  "number": 0,
+  "size": 20
+}
+```
+
+**Error Codes:**
+
+| Condition                            | HTTP | Code            | Message                                                     |
+| ------------------------------------ | ---- | --------------- | ----------------------------------------------------------- |
+| Student/Teacher uses `archived` param | 403  | ACCESS_DENIED   | "You do not have permission to filter by archived status"   |
+| Invalid `sortBy` value               | 400  | INVALID_REQUEST | "Invalid sort field. Must be: submissionDate, title, authorName" |
+| Invalid `sortOrder` value            | 400  | INVALID_REQUEST | "Invalid sort order. Must be: asc, desc"                    |
+| Invalid `year` format                | 400  | INVALID_REQUEST | "Invalid year format. Must be a 4-digit year (e.g., 2023)"  |
+| Invalid `departmentId` format        | 400  | INVALID_REQUEST | "Invalid department ID format"                              |
+| Invalid `page` or `size`             | 400  | INVALID_REQUEST | "Invalid pagination parameters"                             |
+
+**Example Requests:**
+
+```
+# Search for papers containing "machine learning"
+GET /api/papers?search=machine%20learning
+
+# Filter by multiple departments
+GET /api/papers?departmentId=1,3,5
+
+# Filter by year
+GET /api/papers?year=2023
+
+# Combine search with filters and sorting
+GET /api/papers?search=neural&departmentId=1&year=2023&sortBy=title&sortOrder=asc
+
+# Admin viewing archived papers
+GET /api/papers?archived=true&sortBy=submissionDate&sortOrder=desc
+```
+
+**Backend SQL Query Example:**
+
+```sql
+-- Note: Database uses snake_case field names; API uses camelCase
+SELECT * FROM research_papers
+WHERE (title ILIKE '%search_term%' 
+   OR author_name ILIKE '%search_term%' 
+   OR abstract_text ILIKE '%search_term%')
+AND department_id IN (1, 3, 5)
+AND EXTRACT(YEAR FROM submission_date) = 2023
+AND archived = false
+ORDER BY submission_date DESC
+LIMIT 20 OFFSET 0;
+```
+
+**Security Considerations:**
+
+- **SQL injection prevention:** All parameters are properly escaped and parameterized
+- **Enumeration attack prevention:** Students receive identical responses for non-existent and inaccessible papers
+- **Role-based filtering:** Backend enforces role-specific scoping regardless of client-provided parameters
+- **Department ID validation:** Invalid department IDs are rejected with 400 error
 
 ### GET /api/papers/{id}
 
