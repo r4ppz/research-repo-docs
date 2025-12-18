@@ -678,11 +678,12 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 **Search Behavior:**
 
-- **Case-insensitive** matching across `title`, `author_name`, and `abstract_text` fields
+- **Case-insensitive** matching across `title`, `authorName`, and `abstractText` fields
 - **SQL injection protection:** All search terms are parameterized
 - **Empty search:** Returns all papers within user's scope (no filtering applied)
 - **Special characters:** Handled safely; wildcards are not supported
 - **Partial matching:** Searches for substring matches (e.g., "machine" matches "Machine Learning")
+- **Note:** Field names follow API camelCase convention; backend maps to database snake_case fields (`author_name`, `abstract_text`)
 
 **Authorization Scoping:**
 
@@ -753,6 +754,7 @@ GET /api/papers?archived=true&sortBy=submissionDate&sortOrder=desc
 **Backend SQL Query Example:**
 
 ```sql
+-- Note: Database uses snake_case field names; API uses camelCase
 SELECT * FROM research_papers
 WHERE (title ILIKE '%search_term%' 
    OR author_name ILIKE '%search_term%' 

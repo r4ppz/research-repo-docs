@@ -71,7 +71,7 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
   - Use debouncing (300ms) for search input to reduce API calls
   - Multi-select dropdown for departments with checkboxes
   - Single-select dropdown for year filter
-  - Sort dropdown with 5 options: newest first, oldest first, title A-Z, title Z-A, author A-Z
+  - Sort dropdown with 6 options: newest first, oldest first, title A-Z, title Z-A, author A-Z, author Z-A
   - Display "Clear all filters" button when any filter is active
   - Show active filter count badge
 
