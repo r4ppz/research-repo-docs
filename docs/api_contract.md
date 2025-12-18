@@ -608,7 +608,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 **Authorization Scoping:**
 
 - **STUDENT**: Only years with non-archived papers
-- **TEACHER**: Only years with non-archived papers
+- **TEACHER**: All years with papers (including archived)
 - **DEPARTMENT_ADMIN**: Years with papers in their department (including archived)
 - **SUPER_ADMIN**: All years with papers (including archived)
 
