@@ -34,7 +34,6 @@ All error responses **MUST** conform to this structure:
 
 ```json
 {
-  "status": 403, // optional, might remove later
   "code": "ACCESS_DENIED",
   "message": "You do not have permission to perform this action.",
   "details": [
@@ -51,7 +50,6 @@ All error responses **MUST** conform to this structure:
 
 | Field     | Type    | Required | Description                                                |
 | --------- | ------- | -------- | ---------------------------------------------------------- |
-| `status`  | integer | No       | HTTP status code (echoed for logging convenience)          |
 | `code`    | string  | Yes      | Machine-readable error code (see Error Code Registry)      |
 | `message` | string  | Yes      | User-safe, localized-ready error message                   |
 | `details` | array   | No       | Structured validation errors (for `VALIDATION_ERROR` only) |
@@ -102,7 +100,6 @@ All error responses **MUST** conform to this structure:
 
 ```json
 {
-  "status": 400,
   "code": "INVALID_TOKEN",
   "message": "Authentication failed",
   "traceId": "a7b3c9d2"
@@ -199,7 +196,6 @@ All error responses **MUST** conform to this structure:
 
 ```json
 {
-  "status": 400,
   "code": "VALIDATION_ERROR",
   "message": "Invalid request data",
   "details": [
@@ -355,7 +351,6 @@ if (error.code === "RATE_LIMIT_EXCEEDED") {
 
 ```json
 {
-  "status": 429,
   "code": "RATE_LIMIT_EXCEEDED",
   "message": "Too many requests. Please try again later.",
   "details": {
@@ -460,7 +455,6 @@ interface DocumentRequest {
 }
 
 interface ApiError {
-  status: number;
   code: string;
   message: string;
   details?: Array<{ field: string; message: string }>;
@@ -512,7 +506,6 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
   ```json
   {
-    "status": 400,
     "code": "INVALID_TOKEN",
     "message": "Authentication failed",
     "traceId": "..."
@@ -523,7 +516,6 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
   ```json
   {
-    "status": 403,
     "code": "DOMAIN_NOT_ALLOWED",
     "message": "Email domain not allowed",
     "traceId": "..."
@@ -557,7 +549,6 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
   ```json
   {
-    "status": 401,
     "code": "REFRESH_TOKEN_REVOKED",
     "message": "Refresh token expired or missing",
     "traceId": "..."
