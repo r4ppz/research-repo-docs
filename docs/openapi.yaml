@@ -856,12 +856,12 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: PDF or DOCX file
+                  description: PDF or DOCX file. The client MUST set the appropriate Content-Type (application/pdf or application/vnd.openxmlformats-officedocument.wordprocessingml.document).
             encoding:
               metadata:
                 contentType: text/plain
               file:
-                contentType: application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document
+                contentType: application/pdf
       responses:
         '200':
           description: Paper created successfully
