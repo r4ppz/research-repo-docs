@@ -1,0 +1,1690 @@
+openapi: 3.0.3
+info:
+  title: Research Repository API
+  version: 1.0.0
+  description: |
+    Gated school research repository with Google SSO authentication.
+    
+    This API provides access to research papers with role-based permissions:
+    - **STUDENT**: Can view and request access to non-archived papers
+    - **TEACHER**: Can view all papers (metadata) and request access
+    - **DEPARTMENT_ADMIN**: Can manage papers in their department and approve requests
+    - **SUPER_ADMIN**: Full access to all papers and requests
+    
+    **Authentication**: Most endpoints require JWT Bearer token authentication.
+    Refresh tokens are handled via HTTP-only cookies.
+    
+    **Authoritative Documentation**: See `api_contract.md` for complete behavioral specifications,
+    frontend rendering rules, and security considerations.
+  contact:
+    name: Research Repository Team
+    email: support@acdeducation.com
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.research-repo.acdeducation.com
+    description: Production server (placeholder)
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Authentication
+    description: Google SSO authentication and token management
+  - name: User
+    description: User profile operations
+  - name: Filters
+    description: Filter options for papers (years, departments)
+  - name: Papers
+    description: Public paper browsing and retrieval
+  - name: Requests
+    description: Student/Teacher document access requests
+  - name: Admin - Requests
+    description: Admin request approval/rejection
+  - name: Admin - Papers
+    description: Admin paper management (CRUD, archival)
+  - name: Files
+    description: File download operations
+
+paths:
+  /api/auth/google:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate with Google OAuth
+      description: |
+        Exchanges Google OAuth authorization code for JWT access token and sets refresh token cookie.
+        
+        **Public endpoint** - No authentication required.
+        
+        **Refresh Token**: Set via `Set-Cookie` header (HttpOnly, Secure, SameSite=Strict).
+        The frontend must NOT attempt to read or store this token manually.
+      operationId: authenticateGoogle
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  description: Google OAuth authorization code
+                  example: "4/0AY0e-g7xXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXx"
+      responses:
+        '200':
+          description: Authentication successful
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie
+              schema:
+                type: string
+                example: "refreshToken=<token>; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/; Max-Age=2592000"
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accessToken
+                  - user
+                properties:
+                  accessToken:
+                    type: string
+                    description: JWT access token (valid for 15 minutes)
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  user:
+                    $ref: '#/components/schemas/User'
+              examples:
+                student:
+                  summary: Student user
+                  value:
+                    accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    user:
+                      userId: 1
+                      email: "alice@acdeducation.com"
+                      fullName: "Alice Student"
+                      role: "STUDENT"
+                      department: null
+                teacher:
+                  summary: Teacher user
+                  value:
+                    accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    user:
+                      userId: 2
+                      email: "bob@acdeducation.com"
+                      fullName: "Bob Teacher"
+                      role: "TEACHER"
+                      department:
+                        departmentId: 1
+                        departmentName: "Computer Science"
+        '400':
+          $ref: '#/components/responses/InvalidToken'
+        '403':
+          $ref: '#/components/responses/DomainNotAllowed'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: |
+        Exchanges refresh token (from cookie) for a new access token and rotates the refresh token.
+        
+        **Public endpoint** - No JWT required, but requires refresh token cookie.
+        
+        **Cookie Handling**: 
+        - Request must include `Cookie: refreshToken=<token>` header
+        - Response includes new refresh token via `Set-Cookie` header
+        - Old refresh token is invalidated (rotation security)
+      operationId: refreshToken
+      security: []
+      parameters:
+        - name: Cookie
+          in: header
+          required: true
+          description: Must contain the refresh token
+          schema:
+            type: string
+            example: "refreshToken=<refresh_token>"
+      responses:
+        '200':
+          description: Token refresh successful
+          headers:
+            Set-Cookie:
+              description: New HttpOnly refresh token cookie (old token invalidated)
+              schema:
+                type: string
+                example: "refreshToken=<new_token>; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/; Max-Age=2592000"
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accessToken
+                properties:
+                  accessToken:
+                    type: string
+                    description: New JWT access token
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '401':
+          $ref: '#/components/responses/RefreshTokenRevoked'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: |
+        Revokes the refresh token and clears the cookie.
+        
+        **Public endpoint** - No JWT required, but requires refresh token cookie.
+        
+        The response `Set-Cookie` header sets `Max-Age=0` to delete the cookie.
+      operationId: logout
+      security: []
+      parameters:
+        - name: Cookie
+          in: header
+          required: true
+          description: Must contain the refresh token to revoke
+          schema:
+            type: string
+            example: "refreshToken=<refresh_token>"
+      responses:
+        '200':
+          description: Logout successful
+          headers:
+            Set-Cookie:
+              description: Cookie deletion directive (Max-Age=0)
+              schema:
+                type: string
+                example: "refreshToken=; HttpOnly; Secure; SameSite=Strict; Path=/api/auth/; Max-Age=0"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged out successfully"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/users/me:
+    get:
+      tags:
+        - User
+      summary: Get current user profile
+      description: Returns the authenticated user's profile information
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              examples:
+                departmentAdmin:
+                  summary: Department admin with assigned department
+                  value:
+                    userId: 3
+                    email: "carol@acdeducation.com"
+                    fullName: "Carol Admin"
+                    role: "DEPARTMENT_ADMIN"
+                    department:
+                      departmentId: 1
+                      departmentName: "Computer Science"
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/filters/years:
+    get:
+      tags:
+        - Filters
+      summary: Get available years
+      description: |
+        Returns array of years with papers, scoped by user role:
+        - **STUDENT**: Only years with non-archived papers
+        - **TEACHER**: All years with papers (including archived)
+        - **DEPARTMENT_ADMIN**: Years with papers in their department
+        - **SUPER_ADMIN**: All years with papers
+        
+        Years are extracted from paper `submissionDate` field and returned in descending order.
+      operationId: getAvailableYears
+      responses:
+        '200':
+          description: Years retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+                  format: int32
+                  example: 2025
+              examples:
+                default:
+                  summary: Available years
+                  value: [2025, 2024, 2023, 2022]
+                empty:
+                  summary: No papers in user's scope
+                  value: []
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/filters/departments:
+    get:
+      tags:
+        - Filters
+      summary: Get available departments
+      description: |
+        Returns array of departments with papers, scoped by user role:
+        - **STUDENT**: All departments (can view papers from any department)
+        - **TEACHER**: All departments (can view papers from any department)
+        - **DEPARTMENT_ADMIN**: Only their assigned department
+        - **SUPER_ADMIN**: All departments
+        
+        Only includes departments with at least one paper within user's scope.
+        Returned in alphabetical order by department name.
+      operationId: getAvailableDepartments
+      responses:
+        '200':
+          description: Departments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Department'
+              examples:
+                default:
+                  summary: Multiple departments
+                  value:
+                    - departmentId: 1
+                      departmentName: "Computer Science"
+                    - departmentId: 2
+                      departmentName: "Mathematics"
+                    - departmentId: 3
+                      departmentName: "Physics"
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/papers:
+    get:
+      tags:
+        - Papers
+      summary: List papers with pagination and filters
+      description: |
+        Returns paginated list of research papers with optional filtering and sorting.
+        
+        **Authorization Scoping**:
+        - **STUDENT**: Non-archived papers only (403 if `archived` param used)
+        - **TEACHER**: All papers, metadata only (403 if `archived` param used)
+        - **DEPARTMENT_ADMIN**: Papers in their department (can use `archived` param)
+        - **SUPER_ADMIN**: All papers across all departments (can use `archived` param)
+        
+        **Search**: Case-insensitive substring matching across title, author name, and abstract.
+        **Department Filter**: Supports comma-separated IDs for multi-select (e.g., "1,3,5").
+      operationId: listPapers
+      parameters:
+        - name: page
+          in: query
+          description: Zero-indexed page number
+          schema:
+            type: integer
+            format: int32
+            default: 0
+            minimum: 0
+          example: 0
+        - name: size
+          in: query
+          description: Results per page
+          schema:
+            type: integer
+            format: int32
+            default: 20
+            minimum: 1
+            maximum: 100
+          example: 20
+        - name: search
+          in: query
+          description: Full-text search across title, author name, and abstract (case-insensitive)
+          schema:
+            type: string
+          example: "machine learning"
+        - name: departmentId
+          in: query
+          description: Comma-separated list of department IDs for multi-select filter
+          schema:
+            type: string
+            pattern: '^[0-9]+(,[0-9]+)*$'
+          example: "1,3,5"
+        - name: year
+          in: query
+          description: Filter by submission year (4-digit year)
+          schema:
+            type: integer
+            format: int32
+            minimum: 1900
+            maximum: 2100
+          example: 2023
+        - name: archived
+          in: query
+          description: Filter archived status (Admin-only - DEPARTMENT_ADMIN and SUPER_ADMIN)
+          schema:
+            type: string
+            enum: [true, false]
+          example: "false"
+        - name: sortBy
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [submissionDate, title, authorName]
+            default: submissionDate
+          example: "submissionDate"
+        - name: sortOrder
+          in: query
+          description: Sort direction
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          example: "desc"
+      responses:
+        '200':
+          description: Papers retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPapers'
+              examples:
+                default:
+                  summary: Papers list with pagination
+                  value:
+                    content:
+                      - paperId: 123
+                        title: "Machine Learning in Healthcare"
+                        authorName: "Dr. Jane Smith"
+                        abstractText: "This paper explores the application of machine learning algorithms in healthcare diagnostics..."
+                        department:
+                          departmentId: 1
+                          departmentName: "Computer Science"
+                        submissionDate: "2023-09-15"
+                        filePath: "2023/dept_cs/paper_123.pdf"
+                        archived: false
+                        archivedAt: null
+                      - paperId: 124
+                        title: "Quantum Computing Fundamentals"
+                        authorName: "Dr. Bob Johnson"
+                        abstractText: "An introduction to quantum computing principles and their practical applications..."
+                        department:
+                          departmentId: 3
+                          departmentName: "Physics"
+                        submissionDate: "2023-08-20"
+                        filePath: "2023/dept_physics/paper_124.pdf"
+                        archived: false
+                        archivedAt: null
+                    totalElements: 45
+                    totalPages: 3
+                    number: 0
+                    size: 20
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/papers/{paperId}:
+    get:
+      tags:
+        - Papers
+      summary: Get paper by ID
+      description: |
+        Returns a single paper by ID with role-based access control:
+        
+        **STUDENT**:
+        - Can only view non-archived papers with ACCEPTED request
+        - Returns 404 for archived papers or papers without accepted request (security: prevent enumeration)
+        
+        **TEACHER**:
+        - Can view all papers (metadata only)
+        - Archived papers return metadata with `archived: true`
+        
+        **ADMIN roles**:
+        - Full access to all papers in their scope
+        
+        **Security**: Students receive identical 404 responses for non-existent and inaccessible papers.
+      operationId: getPaperById
+      parameters:
+        - name: paperId
+          in: path
+          required: true
+          description: Paper ID
+          schema:
+            type: integer
+            format: int64
+          example: 123
+      responses:
+        '200':
+          description: Paper retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchPaper'
+              examples:
+                activePaper:
+                  summary: Active paper
+                  value:
+                    paperId: 123
+                    title: "Machine Learning in Healthcare"
+                    authorName: "Dr. Jane Smith"
+                    abstractText: "This paper explores the application of machine learning algorithms..."
+                    department:
+                      departmentId: 1
+                      departmentName: "Computer Science"
+                    submissionDate: "2023-09-15"
+                    filePath: "2023/dept_cs/paper_123.pdf"
+                    archived: false
+                    archivedAt: null
+                archivedPaper:
+                  summary: Archived paper (visible to TEACHER/ADMIN)
+                  value:
+                    paperId: 124
+                    title: "Legacy Research Methods"
+                    authorName: "Dr. Alice Brown"
+                    abstractText: "Historical perspective on research methodologies..."
+                    department:
+                      departmentId: 2
+                      departmentName: "Mathematics"
+                    submissionDate: "2020-05-10"
+                    filePath: "2020/dept_math/paper_124.pdf"
+                    archived: true
+                    archivedAt: "2024-01-15T10:30:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          description: Paper not found or not accessible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                notFound:
+                  summary: Paper does not exist
+                  value:
+                    status: 404
+                    code: "RESOURCE_NOT_FOUND"
+                    message: "Paper not found"
+                    traceId: "a1b2c3d4"
+                notAvailable:
+                  summary: Paper archived (STUDENT only)
+                  value:
+                    status: 404
+                    code: "RESOURCE_NOT_AVAILABLE"
+                    message: "Paper not found"
+                    traceId: "e5f6g7h8"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/users/me/requests:
+    get:
+      tags:
+        - Requests
+      summary: Get own document requests
+      description: |
+        Returns all document requests created by the authenticated user for non-archived papers.
+        
+        Available to **STUDENT** and **TEACHER** roles.
+        Each request includes nested paper and requester information.
+      operationId: getOwnRequests
+      responses:
+        '200':
+          description: Requests retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentRequest'
+              examples:
+                default:
+                  summary: User's requests
+                  value:
+                    - requestId: 1
+                      status: "PENDING"
+                      requestDate: "2024-01-15"
+                      paper:
+                        paperId: 123
+                        title: "Machine Learning in Healthcare"
+                        authorName: "Dr. Jane Smith"
+                        abstractText: "This paper explores..."
+                        department:
+                          departmentId: 1
+                          departmentName: "Computer Science"
+                        submissionDate: "2023-09-15"
+                        filePath: "2023/dept_cs/paper_123.pdf"
+                        archived: false
+                        archivedAt: null
+                      requester:
+                        userId: 1
+                        email: "alice@acdeducation.com"
+                        fullName: "Alice Student"
+                        role: "STUDENT"
+                        department: null
+                    - requestId: 2
+                      status: "ACCEPTED"
+                      requestDate: "2024-01-10"
+                      paper:
+                        paperId: 124
+                        title: "Quantum Computing Fundamentals"
+                        authorName: "Dr. Bob Johnson"
+                        abstractText: "An introduction to..."
+                        department:
+                          departmentId: 3
+                          departmentName: "Physics"
+                        submissionDate: "2023-08-20"
+                        filePath: "2023/dept_physics/paper_124.pdf"
+                        archived: false
+                        archivedAt: null
+                      requester:
+                        userId: 1
+                        email: "alice@acdeducation.com"
+                        fullName: "Alice Student"
+                        role: "STUDENT"
+                        department: null
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/requests:
+    post:
+      tags:
+        - Requests
+      summary: Create document access request
+      description: |
+        Creates a new document access request for a paper.
+        
+        **Rules**:
+        - Paper must exist and not be archived
+        - Only one PENDING or ACCEPTED request allowed per user/paper
+        - Duplicate active requests return 409 DUPLICATE_REQUEST
+        - Users can re-request after REJECTED status
+        
+        Available to **STUDENT** and **TEACHER** roles.
+      operationId: createRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - paperId
+              properties:
+                paperId:
+                  type: integer
+                  format: int64
+                  description: ID of the paper to request access to
+                  example: 123
+      responses:
+        '200':
+          description: Request created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requestId:
+                    type: integer
+                    format: int64
+                    example: 42
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          description: Paper not found or not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                notFound:
+                  summary: Paper does not exist
+                  value:
+                    status: 404
+                    code: "RESOURCE_NOT_FOUND"
+                    message: "Paper not found"
+                    traceId: "a1b2c3d4"
+                notAvailable:
+                  summary: Paper is archived
+                  value:
+                    status: 404
+                    code: "RESOURCE_NOT_AVAILABLE"
+                    message: "Paper is no longer available"
+                    traceId: "e5f6g7h8"
+        '409':
+          $ref: '#/components/responses/DuplicateRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/requests/{requestId}:
+    delete:
+      tags:
+        - Requests
+      summary: Delete own request
+      description: |
+        Deletes a user's own document request. Allows re-requesting after rejection.
+        
+        **Rules**:
+        - User can only delete their own requests
+        - Cannot delete ACCEPTED requests (409 REQUEST_ALREADY_FINAL)
+        - Can delete PENDING or REJECTED requests
+        
+        Available to **STUDENT** and **TEACHER** roles.
+      operationId: deleteOwnRequest
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          description: Request ID
+          schema:
+            type: integer
+            format: int64
+          example: 42
+      responses:
+        '204':
+          description: Request deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/RequestAlreadyFinal'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/requests:
+    get:
+      tags:
+        - Admin - Requests
+      summary: List document requests (Admin)
+      description: |
+        Returns document requests scoped by user role:
+        - **DEPARTMENT_ADMIN**: Requests for papers in their department
+        - **SUPER_ADMIN**: All requests (can optionally filter by departmentId)
+        
+        Each request includes nested paper and requester information.
+      operationId: listAdminRequests
+      parameters:
+        - name: departmentId
+          in: query
+          description: Filter by department (SUPER_ADMIN only)
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: Requests retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/requests/{requestId}:
+    put:
+      tags:
+        - Admin - Requests
+      summary: Approve or reject request (Admin)
+      description: |
+        Approves or rejects a document access request.
+        
+        **Rules**:
+        - Request must be in PENDING status (409 if already processed)
+        - DEPARTMENT_ADMIN can only process requests in their department
+        - SUPER_ADMIN can process all requests
+        
+        Status transitions are terminal: PENDING → ACCEPTED or PENDING → REJECTED.
+      operationId: updateAdminRequest
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          description: Request ID
+          schema:
+            type: integer
+            format: int64
+          example: 42
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                  enum: [accept, reject]
+                  description: Action to perform on the request
+                  example: "accept"
+      responses:
+        '204':
+          description: Request updated successfully
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/RequestAlreadyFinal'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/papers:
+    post:
+      tags:
+        - Admin - Papers
+      summary: Create paper (Admin)
+      description: |
+        Creates a new research paper with file upload.
+        
+        **Content-Type**: `multipart/form-data` with two parts:
+        - `metadata`: Form field (NOT a file) containing stringified JSON with paper details
+        - `file`: PDF or DOCX file upload (max 20MB)
+        
+        **Authorization**:
+        - **DEPARTMENT_ADMIN**: Can only create papers in their department
+        - **SUPER_ADMIN**: Can create papers in any department
+        
+        **Validation**:
+        - File must be PDF or DOCX (415 UNSUPPORTED_MEDIA_TYPE)
+        - File must be ≤20MB (413 FILE_TOO_LARGE)
+        - Department must exist (404 RESOURCE_NOT_FOUND)
+      operationId: createPaper
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - metadata
+                - file
+              properties:
+                metadata:
+                  type: string
+                  description: Stringified JSON containing paper metadata (NOT a file upload)
+                  example: '{"title":"Machine Learning in Healthcare","authorName":"Dr. Jane Smith","abstractText":"This paper explores...","departmentId":1,"submissionDate":"2023-09-15"}'
+                file:
+                  type: string
+                  format: binary
+                  description: PDF or DOCX file
+            encoding:
+              metadata:
+                contentType: text/plain
+              file:
+                contentType: application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      responses:
+        '200':
+          description: Paper created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paperId:
+                    type: integer
+                    format: int64
+                    example: 123
+        '400':
+          description: Invalid request or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                validationError:
+                  summary: Field validation failed
+                  value:
+                    status: 400
+                    code: "VALIDATION_ERROR"
+                    message: "Invalid request data"
+                    details:
+                      - field: "title"
+                        message: "must not be blank"
+                      - field: "submissionDate"
+                        message: "must match format YYYY-MM-DD"
+                    traceId: "e4f1a9b7"
+                invalidJson:
+                  summary: Malformed metadata JSON
+                  value:
+                    status: 400
+                    code: "INVALID_REQUEST"
+                    message: "Malformed metadata JSON"
+                    traceId: "a1b2c3d4"
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '413':
+          $ref: '#/components/responses/FileTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/papers/{paperId}:
+    put:
+      tags:
+        - Admin - Papers
+      summary: Update paper metadata (Admin)
+      description: |
+        Updates paper metadata fields (does not update the file).
+        
+        **Authorization**:
+        - **DEPARTMENT_ADMIN**: Can only update papers in their department
+        - **SUPER_ADMIN**: Can update any paper
+        
+        **Validation**:
+        - Paper must exist (404 RESOURCE_NOT_FOUND)
+        - New department must exist if departmentId is changed
+      operationId: updatePaper
+      parameters:
+        - name: paperId
+          in: path
+          required: true
+          description: Paper ID
+          schema:
+            type: integer
+            format: int64
+          example: 123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: "Updated Title"
+                authorName:
+                  type: string
+                  maxLength: 255
+                  example: "Dr. Jane Smith"
+                abstractText:
+                  type: string
+                  example: "Updated abstract text..."
+                departmentId:
+                  type: integer
+                  format: int64
+                  example: 2
+                submissionDate:
+                  type: string
+                  format: date
+                  example: "2023-09-15"
+      responses:
+        '204':
+          description: Paper updated successfully
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      tags:
+        - Admin - Papers
+      summary: Delete paper (Admin)
+      description: |
+        Permanently deletes a paper and its associated file.
+        
+        **Authorization**:
+        - **DEPARTMENT_ADMIN**: Can only delete papers in their department
+        - **SUPER_ADMIN**: Can delete any paper
+        
+        **Note**: If file deletion fails, returns 500 FILE_STORAGE_ERROR.
+      operationId: deletePaper
+      parameters:
+        - name: paperId
+          in: path
+          required: true
+          description: Paper ID
+          schema:
+            type: integer
+            format: int64
+          example: 123
+      responses:
+        '204':
+          description: Paper deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          description: File deletion failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                fileStorageError:
+                  summary: File storage error
+                  value:
+                    status: 500
+                    code: "FILE_STORAGE_ERROR"
+                    message: "Failed to delete paper file. Contact support."
+                    traceId: "x9y8z7w6"
+
+  /api/admin/papers/{paperId}/archive:
+    put:
+      tags:
+        - Admin - Papers
+      summary: Archive paper (Admin)
+      description: |
+        Archives a paper, making it inaccessible to students and preventing new requests.
+        
+        **Idempotent**: Returns 200 if already archived.
+        
+        **Authorization**:
+        - **DEPARTMENT_ADMIN**: Can only archive papers in their department
+        - **SUPER_ADMIN**: Can archive any paper
+      operationId: archivePaper
+      parameters:
+        - name: paperId
+          in: path
+          required: true
+          description: Paper ID
+          schema:
+            type: integer
+            format: int64
+          example: 123
+      responses:
+        '200':
+          description: Paper archived successfully (idempotent)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Paper archived successfully"
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/admin/papers/{paperId}/unarchive:
+    put:
+      tags:
+        - Admin - Papers
+      summary: Unarchive paper (Admin)
+      description: |
+        Unarchives a paper, making it accessible again.
+        
+        **Idempotent**: Returns 200 if already active.
+        
+        **Authorization**:
+        - **DEPARTMENT_ADMIN**: Can only unarchive papers in their department
+        - **SUPER_ADMIN**: Can unarchive any paper
+      operationId: unarchivePaper
+      parameters:
+        - name: paperId
+          in: path
+          required: true
+          description: Paper ID
+          schema:
+            type: integer
+            format: int64
+          example: 123
+      responses:
+        '200':
+          description: Paper unarchived successfully (idempotent)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Paper unarchived successfully"
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/files/{fileId}:
+    get:
+      tags:
+        - Files
+      summary: Download paper file
+      description: |
+        Downloads a paper file (PDF or DOCX) as binary data.
+        
+        **Authorization Matrix**:
+        - **SUPER_ADMIN**: Always allowed
+        - **DEPARTMENT_ADMIN**: Allowed if paper in their department
+        - **STUDENT/TEACHER**: Allowed only if ACCEPTED request exists and paper not archived
+        
+        **Security**:
+        - Path traversal attempts return 400 INVALID_REQUEST
+        - File missing on disk returns 500 FILE_STORAGE_ERROR
+        - Archived papers return 404 RESOURCE_NOT_AVAILABLE for non-admins
+        
+        The `fileId` is typically the paper ID, which is used to construct the file path from the database.
+      operationId: downloadFile
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: File/Paper ID
+          schema:
+            type: integer
+            format: int64
+          example: 123
+      responses:
+        '200':
+          description: File downloaded successfully
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
+        '404':
+          description: File not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                notAvailable:
+                  summary: Paper archived (non-admin)
+                  value:
+                    status: 404
+                    code: "RESOURCE_NOT_AVAILABLE"
+                    message: "File not available"
+                    traceId: "f1e2d3c4"
+        '500':
+          description: File storage error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              examples:
+                storageError:
+                  summary: File missing on disk
+                  value:
+                    status: 500
+                    code: "FILE_STORAGE_ERROR"
+                    message: "File storage error. Contact support with trace ID."
+                    traceId: "a9b8c7d6"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT access token for authentication. Valid for 15 minutes.
+        
+        Include in requests: `Authorization: Bearer <access_token>`
+        
+        **Note**: Refresh tokens are handled separately via HTTP-only cookies
+        and are never included in the Authorization header.
+
+  schemas:
+    Role:
+      type: string
+      enum:
+        - STUDENT
+        - TEACHER
+        - DEPARTMENT_ADMIN
+        - SUPER_ADMIN
+      description: User role with associated permissions
+
+    RequestStatus:
+      type: string
+      enum:
+        - PENDING
+        - ACCEPTED
+        - REJECTED
+      description: |
+        Document request status. Transitions are terminal:
+        PENDING → ACCEPTED or PENDING → REJECTED
+
+    Department:
+      type: object
+      required:
+        - departmentId
+        - departmentName
+      properties:
+        departmentId:
+          type: integer
+          format: int64
+          example: 1
+        departmentName:
+          type: string
+          example: "Computer Science"
+
+    User:
+      type: object
+      required:
+        - userId
+        - email
+        - fullName
+        - role
+      properties:
+        userId:
+          type: integer
+          format: int64
+          example: 1
+        email:
+          type: string
+          format: email
+          example: "alice@acdeducation.com"
+        fullName:
+          type: string
+          example: "Alice Student"
+        role:
+          $ref: '#/components/schemas/Role'
+        department:
+          allOf:
+            - $ref: '#/components/schemas/Department'
+            - nullable: true
+          description: |
+            Assigned department (required for DEPARTMENT_ADMIN, null for STUDENT/SUPER_ADMIN)
+
+    ResearchPaper:
+      type: object
+      required:
+        - paperId
+        - title
+        - authorName
+        - abstractText
+        - department
+        - submissionDate
+        - filePath
+        - archived
+      properties:
+        paperId:
+          type: integer
+          format: int64
+          example: 123
+        title:
+          type: string
+          example: "Machine Learning in Healthcare"
+        authorName:
+          type: string
+          maxLength: 255
+          example: "Dr. Jane Smith"
+        abstractText:
+          type: string
+          example: "This paper explores the application of machine learning algorithms in healthcare diagnostics..."
+        department:
+          $ref: '#/components/schemas/Department'
+        submissionDate:
+          type: string
+          format: date
+          description: Paper submission date (YYYY-MM-DD)
+          example: "2023-09-15"
+        filePath:
+          type: string
+          description: Relative file path for storage
+          example: "2023/dept_cs/paper_123.pdf"
+        archived:
+          type: boolean
+          description: Whether the paper is archived
+          example: false
+        archivedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when paper was archived (null if not archived)
+          example: null
+
+    DocumentRequest:
+      type: object
+      required:
+        - requestId
+        - status
+        - requestDate
+        - paper
+        - requester
+      properties:
+        requestId:
+          type: integer
+          format: int64
+          example: 1
+        status:
+          $ref: '#/components/schemas/RequestStatus'
+        requestDate:
+          type: string
+          format: date
+          description: Date when request was created (YYYY-MM-DD)
+          example: "2024-01-15"
+        paper:
+          $ref: '#/components/schemas/ResearchPaper'
+        requester:
+          $ref: '#/components/schemas/User'
+
+    PaginatedPapers:
+      type: object
+      required:
+        - content
+        - totalElements
+        - totalPages
+        - number
+        - size
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResearchPaper'
+        totalElements:
+          type: integer
+          format: int64
+          description: Total number of papers matching the query
+          example: 45
+        totalPages:
+          type: integer
+          format: int32
+          description: Total number of pages
+          example: 3
+        number:
+          type: integer
+          format: int32
+          description: Current page number (zero-indexed)
+          example: 0
+        size:
+          type: integer
+          format: int32
+          description: Page size (results per page)
+          example: 20
+
+    ApiError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        status:
+          type: integer
+          format: int32
+          description: HTTP status code (optional, echoed for logging convenience)
+          example: 400
+        code:
+          type: string
+          description: Machine-readable error code (stable across versions)
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          description: User-safe, localized-ready error message
+          example: "Invalid request data"
+        details:
+          type: array
+          description: Structured validation errors (for VALIDATION_ERROR only)
+          items:
+            type: object
+            required:
+              - field
+              - message
+            properties:
+              field:
+                type: string
+                example: "title"
+              message:
+                type: string
+                example: "must not be blank"
+        traceId:
+          type: string
+          description: Correlation ID for log lookup and support
+          example: "a7b3c9d2"
+
+    FilterOptions:
+      type: object
+      required:
+        - years
+        - departments
+      properties:
+        years:
+          type: array
+          items:
+            type: integer
+            format: int32
+          description: Available years with papers
+          example: [2025, 2024, 2023, 2022]
+        departments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Department'
+
+  responses:
+    InvalidToken:
+      description: Invalid Google OAuth token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 400
+            code: "INVALID_TOKEN"
+            message: "Authentication failed"
+            traceId: "a7b3c9d2"
+
+    InvalidRequest:
+      description: Malformed request or invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            malformedJson:
+              summary: Malformed JSON
+              value:
+                status: 400
+                code: "INVALID_REQUEST"
+                message: "Malformed JSON in request body"
+                traceId: "b8c9d1e2"
+            invalidSortField:
+              summary: Invalid sort field
+              value:
+                status: 400
+                code: "INVALID_REQUEST"
+                message: "Invalid sort field. Must be: submissionDate, title, authorName"
+                traceId: "c9d1e2f3"
+
+    ValidationError:
+      description: Field-level validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 400
+            code: "VALIDATION_ERROR"
+            message: "Invalid request data"
+            details:
+              - field: "title"
+                message: "must not be blank"
+              - field: "submissionDate"
+                message: "must match format YYYY-MM-DD"
+            traceId: "e4f1a9b7"
+
+    Unauthenticated:
+      description: Missing or invalid JWT access token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 401
+            code: "UNAUTHENTICATED"
+            message: "Authentication required"
+            traceId: "d1e2f3g4"
+
+    RefreshTokenRevoked:
+      description: Refresh token is invalid, expired, or revoked
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 401
+            code: "REFRESH_TOKEN_REVOKED"
+            message: "Refresh token expired or missing"
+            traceId: "e2f3g4h5"
+
+    AccessDenied:
+      description: User lacks required role or department scope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            insufficientPermissions:
+              summary: Insufficient permissions
+              value:
+                status: 403
+                code: "ACCESS_DENIED"
+                message: "You do not have permission to perform this action"
+                traceId: "f3g4h5i6"
+            departmentMismatch:
+              summary: Department mismatch
+              value:
+                status: 403
+                code: "ACCESS_DENIED"
+                message: "Paper is not in your department"
+                traceId: "g4h5i6j7"
+
+    DomainNotAllowed:
+      description: Email domain not in whitelist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 403
+            code: "DOMAIN_NOT_ALLOWED"
+            message: "Email domain not allowed"
+            traceId: "h5i6j7k8"
+
+    ResourceNotFound:
+      description: Resource does not exist (or user cannot know it exists)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            paperNotFound:
+              summary: Paper not found
+              value:
+                status: 404
+                code: "RESOURCE_NOT_FOUND"
+                message: "Paper not found"
+                traceId: "i6j7k8l9"
+            requestNotFound:
+              summary: Request not found
+              value:
+                status: 404
+                code: "RESOURCE_NOT_FOUND"
+                message: "Request not found"
+                traceId: "j7k8l9m1"
+
+    ResourceNotAvailable:
+      description: Resource exists but is archived/inaccessible
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            paperArchived:
+              summary: Paper archived
+              value:
+                status: 404
+                code: "RESOURCE_NOT_AVAILABLE"
+                message: "Paper is no longer available"
+                traceId: "k8l9m1n2"
+            fileNotAvailable:
+              summary: File not available
+              value:
+                status: 404
+                code: "RESOURCE_NOT_AVAILABLE"
+                message: "File not available"
+                traceId: "l9m1n2o3"
+
+    DuplicateRequest:
+      description: Active request (PENDING/ACCEPTED) already exists for this paper
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 409
+            code: "DUPLICATE_REQUEST"
+            message: "You already have a pending or accepted request for this paper"
+            traceId: "m1n2o3p4"
+
+    RequestAlreadyFinal:
+      description: Cannot modify request in terminal state
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            deleteAccepted:
+              summary: Cannot delete accepted request
+              value:
+                status: 409
+                code: "REQUEST_ALREADY_FINAL"
+                message: "Cannot delete an accepted request"
+                traceId: "n2o3p4q5"
+            alreadyProcessed:
+              summary: Request already processed
+              value:
+                status: 409
+                code: "REQUEST_ALREADY_FINAL"
+                message: "Request has already been processed"
+                traceId: "o3p4q5r6"
+
+    FileTooLarge:
+      description: File exceeds 20MB limit
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 413
+            code: "FILE_TOO_LARGE"
+            message: "File size exceeds 20MB limit"
+            traceId: "p4q5r6s7"
+
+    UnsupportedMediaType:
+      description: File is not PDF or DOCX
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 415
+            code: "UNSUPPORTED_MEDIA_TYPE"
+            message: "File must be PDF or DOCX"
+            traceId: "q5r6s7t8"
+
+    RateLimitExceeded:
+      description: Too many requests in time window
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 429
+            code: "RATE_LIMIT_EXCEEDED"
+            message: "Too many requests. Please try again later."
+            details:
+              limit: 5
+              window: "1 minute"
+              retryAfter: 42
+            traceId: "r6s7t8u9"
+
+    InternalError:
+      description: Unhandled server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 500
+            code: "INTERNAL_ERROR"
+            message: "An unexpected error occurred"
+            traceId: "s7t8u9v1"
+
+    FileStorageError:
+      description: File missing on disk or I/O failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 500
+            code: "FILE_STORAGE_ERROR"
+            message: "File storage error. Contact support with trace ID."
+            traceId: "t8u9v1w2"
+
+    ServiceUnavailable:
+      description: Database or external service down
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 503
+            code: "SERVICE_UNAVAILABLE"
+            message: "Service temporarily unavailable. Please try again later."
+            traceId: "u9v1w2x3"
