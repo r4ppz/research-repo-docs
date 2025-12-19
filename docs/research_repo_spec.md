@@ -321,7 +321,6 @@ All error responses **MUST** conform to this structure:
 
 ```json
 {
-  "status": 403, // Optional, might delete later
   "code": "ACCESS_DENIED",
   "message": "You do not have permission to perform this action.",
   "details": [
@@ -338,7 +337,6 @@ All error responses **MUST** conform to this structure:
 
 | Field     | Type    | Required | Description                                                        |
 | --------- | ------- | -------- | ------------------------------------------------------------------ |
-| `status`  | integer | No       | HTTP status code (echoed for logging convenience)                  |
 | `code`    | string  | Yes      | Machine-readable error code (stable across versions)               |
 | `message` | string  | Yes      | User-safe, localized-ready error message                           |
 | `details` | array   | No       | Structured validation errors (array of `{field, message}` objects) |
