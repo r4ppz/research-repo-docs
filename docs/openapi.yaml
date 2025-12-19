@@ -1388,20 +1388,45 @@ components:
           description: User-safe, localized-ready error message
           example: "Invalid request data"
         details:
-          type: array
-          description: Structured validation errors (for VALIDATION_ERROR only)
-          items:
-            type: object
-            required:
-              - field
-              - message
-            properties:
-              field:
-                type: string
-                example: "title"
-              message:
-                type: string
-                example: "must not be blank"
+          description: >
+            Additional structured information about the error.
+            The structure of this field depends on the `code` value.
+            For `VALIDATION_ERROR`, this is an array of field-level errors.
+            For rate limiting errors (e.g. `RATE_LIMIT_EXCEEDED`), this is
+            an object containing rate limit metadata.
+          oneOf:
+            - type: array
+              description: Structured validation errors (for VALIDATION_ERROR only)
+              items:
+                type: object
+                required:
+                  - field
+                  - message
+                properties:
+                  field:
+                    type: string
+                    example: "title"
+                  message:
+                    type: string
+                    example: "must not be blank"
+            - type: object
+              description: Rate limit metadata (for RATE_LIMIT_EXCEEDED and similar errors)
+              properties:
+                limit:
+                  type: integer
+                  format: int32
+                  description: Maximum number of requests allowed in the given window.
+                  example: 100
+                window:
+                  type: string
+                  description: Length of the rate limit window, for example "1m" or "1h".
+                  example: "1m"
+                retryAfter:
+                  type: integer
+                  format: int64
+                  description: Seconds until the client is allowed to retry.
+                  example: 30
+              additionalProperties: false
         traceId:
           type: string
           description: Correlation ID for log lookup and support
