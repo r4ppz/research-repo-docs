@@ -15,7 +15,6 @@ Central documentation for the Research Repository project.
 | Document                                                                 | Description                                                 |
 | ------------------------------------------------------------------------ | ----------------------------------------------------------- |
 | [Research Repository Specification](./docs/research_repo_spec.md)        | Main system design, roles, and database schema              |
-| [API Contract](./docs/api_contract.md)                                   | Full REST API endpoints and data contracts                  |
 | [OpenAPI Specification](./docs/openapi.yaml)                             | Machine-readable OpenAPI 3.0 API specification              |
 | [Frontend Repository](https://github.com/r4ppz19/research-repository)    | Frontend repository written in React                        |
 | [GitHub Pages (Live Demo)](https://r4ppz.github.io/research-repository/) | Deployed static frontend. No backend. **Not yet finished.** |

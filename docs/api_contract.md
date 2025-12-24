@@ -48,12 +48,12 @@ All error responses **MUST** conform to this structure:
 
 #### Field Semantics
 
-| Field     | Type    | Required | Description                                                |
-| --------- | ------- | -------- | ---------------------------------------------------------- |
-| `code`    | string  | Yes      | Machine-readable error code (see Error Code Registry)      |
-| `message` | string  | Yes      | User-safe, localized-ready error message                   |
-| `details` | array   | No       | Structured validation errors (for `VALIDATION_ERROR` only) |
-| `traceId` | string  | No       | Correlation ID for log lookup and support                  |
+| Field     | Type   | Required | Description                                                |
+| --------- | ------ | -------- | ---------------------------------------------------------- |
+| `code`    | string | Yes      | Machine-readable error code (see Error Code Registry)      |
+| `message` | string | Yes      | User-safe, localized-ready error message                   |
+| `details` | array  | No       | Structured validation errors (for `VALIDATION_ERROR` only) |
+| `traceId` | string | No       | Correlation ID for log lookup and support                  |
 
 #### Contract Guarantees
 
@@ -66,24 +66,24 @@ All error responses **MUST** conform to this structure:
 
 ### Error Code Registry
 
-| HTTP | Code                   | Category | Meaning                                                         | Frontend Behavior                           |
-| ---- | ---------------------- | -------- | --------------------------------------------------------------- | ------------------------------------------- |
-| 400  | VALIDATION_ERROR       | Input    | Field-level validation failed                                   | Show inline field errors from `details`     |
-| 400  | INVALID_REQUEST        | Input    | Malformed JSON or missing required fields                       | Show page-level alert                       |
-| 401  | UNAUTHENTICATED        | Auth     | Missing or invalid JWT access token                             | Redirect to login page                      |
-| 401  | REFRESH_TOKEN_REVOKED  | Auth     | Refresh token is invalid, expired, or revoked                   | Force logout and redirect to login          |
-| 403  | ACCESS_DENIED          | AuthZ    | User lacks required role or department scope                    | Show access denied page                     |
-| 403  | DOMAIN_NOT_ALLOWED     | Auth     | Email domain not in whitelist                                   | Show blocking error during login            |
-| 404  | RESOURCE_NOT_FOUND     | Data     | Resource does not exist (or user cannot know it exists)         | Show 404 page, no error toast               |
-| 404  | RESOURCE_NOT_AVAILABLE | Data     | Resource exists but is archived/inaccessible                    | Show "Archived" badge, no error toast       |
-| 409  | DUPLICATE_REQUEST      | Business | Active request (PENDING/ACCEPTED) already exists for this paper | Show page-level alert with retry guidance   |
-| 409  | REQUEST_ALREADY_FINAL  | Business | Cannot modify request in terminal state                         | Show page-level alert                       |
-| 413  | FILE_TOO_LARGE         | Upload   | File exceeds 20MB limit                                         | Show inline upload error with size limit    |
-| 415  | UNSUPPORTED_MEDIA_TYPE | Upload   | File is not PDF or DOCX                                         | Show inline upload error with allowed types |
-| 429  | RATE_LIMIT_EXCEEDED    | System   | Too many requests in time window                                | Show alert with retry-after countdown       |
-| 500  | INTERNAL_ERROR         | System   | Unhandled server error                                          | Show global error UI with trace ID          |
-| 500  | FILE_STORAGE_ERROR     | System   | File missing on disk or I/O failure                             | Show error with support contact info        |
-| 503  | SERVICE_UNAVAILABLE    | System   | Database or external service down                               | Show retry UI with exponential backoff      |
+| HTTP | Code                   | Category | Meaning                                                         |
+| ---- | ---------------------- | -------- | --------------------------------------------------------------- |
+| 400  | VALIDATION_ERROR       | Input    | Field-level validation failed                                   |
+| 400  | INVALID_REQUEST        | Input    | Malformed JSON or missing required fields                       |
+| 401  | UNAUTHENTICATED        | Auth     | Missing or invalid JWT access token                             |
+| 401  | REFRESH_TOKEN_REVOKED  | Auth     | Refresh token is invalid, expired, or revoked                   |
+| 403  | ACCESS_DENIED          | AuthZ    | User lacks required role or department scope                    |
+| 403  | DOMAIN_NOT_ALLOWED     | Auth     | Email domain not in whitelist                                   |
+| 404  | RESOURCE_NOT_FOUND     | Data     | Resource does not exist (or user cannot know it exists)         |
+| 404  | RESOURCE_NOT_AVAILABLE | Data     | Resource exists but is archived/inaccessible                    |
+| 409  | DUPLICATE_REQUEST      | Business | Active request (PENDING/ACCEPTED) already exists for this paper |
+| 409  | REQUEST_ALREADY_FINAL  | Business | Cannot modify request in terminal state                         |
+| 413  | FILE_TOO_LARGE         | Upload   | File exceeds 20MB limit                                         |
+| 415  | UNSUPPORTED_MEDIA_TYPE | Upload   | File is not PDF or DOCX                                         |
+| 429  | RATE_LIMIT_EXCEEDED    | System   | Too many requests in time window                                |
+| 500  | INTERNAL_ERROR         | System   | Unhandled server error                                          |
+| 500  | FILE_STORAGE_ERROR     | System   | File missing on disk or I/O failure                             |
+| 503  | SERVICE_UNAVAILABLE    | System   | Database or external service down                               |
 
 ---
 
@@ -678,12 +678,12 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 **Authorization Scoping:**
 
-| Role             | Scope                                           | Can Use `archived` Param |
-| ---------------- | ----------------------------------------------- | ------------------------ |
-| STUDENT          | Non-archived papers only                        | ❌ (403 ACCESS_DENIED)   |
-| TEACHER          | All papers (metadata only)                      | ❌ (403 ACCESS_DENIED)   |
-| DEPARTMENT_ADMIN | Papers in their department (active + archived)  | ✅                       |
-| SUPER_ADMIN      | All papers across all departments               | ✅                       |
+| Role             | Scope                                          | Can Use `archived` Param |
+| ---------------- | ---------------------------------------------- | ------------------------ |
+| STUDENT          | Non-archived papers only                       | ❌ (403 ACCESS_DENIED)   |
+| TEACHER          | All papers (metadata only)                     | ❌ (403 ACCESS_DENIED)   |
+| DEPARTMENT_ADMIN | Papers in their department (active + archived) | ✅                       |
+| SUPER_ADMIN      | All papers across all departments              | ✅                       |
 
 **Response Example:**
 
@@ -714,14 +714,14 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 **Error Codes:**
 
-| Condition                            | HTTP | Code            | Message                                                     |
-| ------------------------------------ | ---- | --------------- | ----------------------------------------------------------- |
-| Student/Teacher uses `archived` param | 403  | ACCESS_DENIED   | "You do not have permission to filter by archived status"   |
-| Invalid `sortBy` value               | 400  | INVALID_REQUEST | "Invalid sort field. Must be: submissionDate, title, authorName" |
-| Invalid `sortOrder` value            | 400  | INVALID_REQUEST | "Invalid sort order. Must be: asc, desc"                    |
-| Invalid `year` format                | 400  | INVALID_REQUEST | "Invalid year format. Must be a 4-digit year (e.g., 2023)"  |
-| Invalid `departmentId` format        | 400  | INVALID_REQUEST | "Invalid department ID format"                              |
-| Invalid `page` or `size`             | 400  | INVALID_REQUEST | "Invalid pagination parameters"                             |
+| Condition                             | HTTP | Code            | Message                                                          |
+| ------------------------------------- | ---- | --------------- | ---------------------------------------------------------------- |
+| Student/Teacher uses `archived` param | 403  | ACCESS_DENIED   | "You do not have permission to filter by archived status"        |
+| Invalid `sortBy` value                | 400  | INVALID_REQUEST | "Invalid sort field. Must be: submissionDate, title, authorName" |
+| Invalid `sortOrder` value             | 400  | INVALID_REQUEST | "Invalid sort order. Must be: asc, desc"                         |
+| Invalid `year` format                 | 400  | INVALID_REQUEST | "Invalid year format. Must be a 4-digit year (e.g., 2023)"       |
+| Invalid `departmentId` format         | 400  | INVALID_REQUEST | "Invalid department ID format"                                   |
+| Invalid `page` or `size`              | 400  | INVALID_REQUEST | "Invalid pagination parameters"                                  |
 
 **Example Requests:**
 
@@ -747,8 +747,8 @@ GET /api/papers?archived=true&sortBy=submissionDate&sortOrder=desc
 ```sql
 -- Note: Database uses snake_case field names; API uses camelCase
 SELECT * FROM research_papers
-WHERE (title ILIKE '%search_term%' 
-   OR author_name ILIKE '%search_term%' 
+WHERE (title ILIKE '%search_term%'
+   OR author_name ILIKE '%search_term%'
    OR abstract_text ILIKE '%search_term%')
 AND department_id IN (1, 3, 5)
 AND EXTRACT(YEAR FROM submission_date) = 2023
