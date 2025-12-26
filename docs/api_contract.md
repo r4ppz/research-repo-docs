@@ -87,295 +87,6 @@ All error responses **MUST** conform to this structure:
 
 ---
 
-### Endpoint-Specific Error Codes
-
-#### POST /api/auth/google
-
-| Condition                | HTTP | Code               | Message                    |
-| ------------------------ | ---- | ------------------ | -------------------------- |
-| Invalid Google token     | 400  | INVALID_TOKEN      | "Authentication failed"    |
-| Email domain not allowed | 403  | DOMAIN_NOT_ALLOWED | "Email domain not allowed" |
-
-**Response Example:**
-
-```json
-{
-  "code": "INVALID_TOKEN",
-  "message": "Authentication failed",
-  "traceId": "a7b3c9d2"
-}
-```
-
----
-
-#### POST /api/auth/refresh
-
-| Condition                  | HTTP | Code                  | Message                            |
-| -------------------------- | ---- | --------------------- | ---------------------------------- |
-| Refresh token missing      | 401  | REFRESH_TOKEN_REVOKED | "Refresh token expired or missing" |
-| Refresh token expired      | 401  | REFRESH_TOKEN_REVOKED | "Refresh token expired or missing" |
-| Refresh token already used | 401  | REFRESH_TOKEN_REVOKED | "Refresh token expired or missing" |
-
-**Note:** All refresh token failures return the same generic message to prevent information leakage.
-
----
-
-#### POST /api/requests
-
-| Condition                | HTTP | Code                   | Message                                                         |
-| ------------------------ | ---- | ---------------------- | --------------------------------------------------------------- |
-| Paper does not exist     | 404  | RESOURCE_NOT_FOUND     | "Paper not found"                                               |
-| Paper is archived        | 404  | RESOURCE_NOT_AVAILABLE | "Paper is no longer available"                                  |
-| Duplicate active request | 409  | DUPLICATE_REQUEST      | "You already have a pending or accepted request for this paper" |
-| User role cannot request | 403  | ACCESS_DENIED          | "Your account type cannot request access to papers"             |
-
-**Note:** Both `RESOURCE_NOT_FOUND` and `RESOURCE_NOT_AVAILABLE` return HTTP 404 to prevent information leakage about archived papers.
-
----
-
-#### DELETE /api/requests/{requestId}
-
-| Condition                 | HTTP | Code                  | Message                                 |
-| ------------------------- | ---- | --------------------- | --------------------------------------- |
-| Request does not exist    | 404  | RESOURCE_NOT_FOUND    | "Request not found"                     |
-| Request not owned by user | 403  | ACCESS_DENIED         | "You can only delete your own requests" |
-| Request is ACCEPTED       | 409  | REQUEST_ALREADY_FINAL | "Cannot delete an accepted request"     |
-
----
-
-#### GET /api/papers/{id}
-
-| User Role | Condition            | HTTP | Code                   | Message                   |
-| --------- | -------------------- | ---- | ---------------------- | ------------------------- |
-| STUDENT   | Paper archived       | 404  | RESOURCE_NOT_AVAILABLE | "Paper not found"         |
-| STUDENT   | No accepted request  | 404  | RESOURCE_NOT_FOUND     | "Paper not found"         |
-| TEACHER   | Paper archived       | 200  | -                      | _(Returns metadata only)_ |
-| TEACHER   | No accepted request  | 200  | -                      | _(Returns metadata only)_ |
-| ADMIN     | Paper exists         | 200  | -                      | _(Full access)_           |
-| ALL       | Paper does not exist | 404  | RESOURCE_NOT_FOUND     | "Paper not found"         |
-
-**Security Note:** Students receive 404 for both non-existent and inaccessible papers to prevent enumeration attacks.
-
----
-
-#### GET /api/files/{fileId}
-
-| Condition                             | HTTP | Code                   | Message                                              |
-| ------------------------------------- | ---- | ---------------------- | ---------------------------------------------------- |
-| No accepted request (Student/Teacher) | 403  | ACCESS_DENIED          | "Access denied"                                      |
-| Paper is archived (Student/Teacher)   | 404  | RESOURCE_NOT_AVAILABLE | "File not available"                                 |
-| File missing on disk                  | 500  | FILE_STORAGE_ERROR     | "File storage error. Contact support with trace ID." |
-| Invalid file path                     | 400  | INVALID_REQUEST        | "Invalid file request"                               |
-| File path contains path traversal     | 400  | INVALID_REQUEST        | "Invalid file request"                               |
-
----
-
-#### PUT /api/admin/requests/{id}
-
-| Condition                        | HTTP | Code                  | Message                               |
-| -------------------------------- | ---- | --------------------- | ------------------------------------- |
-| Request not found                | 404  | RESOURCE_NOT_FOUND    | "Request not found"                   |
-| Request not PENDING              | 409  | REQUEST_ALREADY_FINAL | "Request has already been processed"  |
-| Department mismatch (DEPT_ADMIN) | 403  | ACCESS_DENIED         | "Request is not in your department"   |
-| Invalid action value             | 400  | INVALID_REQUEST       | "Action must be 'accept' or 'reject'" |
-
----
-
-#### POST /api/admin/papers
-
-| Condition                        | HTTP | Code                   | Message                                      |
-| -------------------------------- | ---- | ---------------------- | -------------------------------------------- |
-| Missing metadata or file         | 400  | VALIDATION_ERROR       | "Invalid request data"                       |
-| Invalid JSON in metadata         | 400  | INVALID_REQUEST        | "Malformed metadata JSON"                    |
-| File exceeds 20MB                | 413  | FILE_TOO_LARGE         | "File size exceeds 20MB limit"               |
-| File is not PDF/DOCX             | 415  | UNSUPPORTED_MEDIA_TYPE | "File must be PDF or DOCX"                   |
-| Department does not exist        | 404  | RESOURCE_NOT_FOUND     | "Department not found"                       |
-| Department mismatch (DEPT_ADMIN) | 403  | ACCESS_DENIED          | "You can only add papers to your department" |
-
-**Validation Error Example:**
-
-```json
-{
-  "code": "VALIDATION_ERROR",
-  "message": "Invalid request data",
-  "details": [
-    { "field": "title", "message": "must not be blank" },
-    { "field": "submissionDate", "message": "must match format YYYY-MM-DD" }
-  ],
-  "traceId": "e4f1a9b7"
-}
-```
-
----
-
-#### PUT /api/admin/papers/{id}
-
-| Condition                        | HTTP | Code               | Message                           |
-| -------------------------------- | ---- | ------------------ | --------------------------------- |
-| Paper not found                  | 404  | RESOURCE_NOT_FOUND | "Paper not found"                 |
-| Validation failure               | 400  | VALIDATION_ERROR   | "Invalid request data"            |
-| Department mismatch (DEPT_ADMIN) | 403  | ACCESS_DENIED      | "Paper is not in your department" |
-| New department doesn't exist     | 404  | RESOURCE_NOT_FOUND | "Department not found"            |
-
----
-
-#### DELETE /api/admin/papers/{id}
-
-| Condition                        | HTTP | Code               | Message                                         |
-| -------------------------------- | ---- | ------------------ | ----------------------------------------------- |
-| Paper not found                  | 404  | RESOURCE_NOT_FOUND | "Paper not found"                               |
-| Department mismatch (DEPT_ADMIN) | 403  | ACCESS_DENIED      | "Paper is not in your department"               |
-| File deletion failure            | 500  | FILE_STORAGE_ERROR | "Failed to delete paper file. Contact support." |
-
----
-
-#### PUT /api/admin/papers/{id}/archive
-
-| Condition                        | HTTP | Code               | Message                           |
-| -------------------------------- | ---- | ------------------ | --------------------------------- |
-| Paper not found                  | 404  | RESOURCE_NOT_FOUND | "Paper not found"                 |
-| Already archived                 | 200  | -                  | _(Idempotent, returns success)_   |
-| Department mismatch (DEPT_ADMIN) | 403  | ACCESS_DENIED      | "Paper is not in your department" |
-
----
-
-#### PUT /api/admin/papers/{id}/unarchive
-
-| Condition                        | HTTP | Code               | Message                           |
-| -------------------------------- | ---- | ------------------ | --------------------------------- |
-| Paper not found                  | 404  | RESOURCE_NOT_FOUND | "Paper not found"                 |
-| Already active                   | 200  | -                  | _(Idempotent, returns success)_   |
-| Department mismatch (DEPT_ADMIN) | 403  | ACCESS_DENIED      | "Paper is not in your department" |
-
----
-
-### Frontend Rendering Rules
-
-These rules define how the frontend **MUST** handle each error code to ensure consistent UX.
-
-#### 1. Validation Errors
-
-```typescript
-if (error.code === "VALIDATION_ERROR") {
-  error.details.forEach(({ field, message }) => {
-    showFieldError(field, message); // Inline next to form field
-  });
-  // No toast, no modal
-}
-```
-
-#### 2. Authentication Errors
-
-```typescript
-if (
-  error.code === "UNAUTHENTICATED" ||
-  error.code === "REFRESH_TOKEN_REVOKED"
-) {
-  clearTokens();
-  redirectTo("/login");
-  // No error message shown (expected flow)
-}
-```
-
-#### 3. Authorization Errors
-
-```typescript
-if (error.code === "ACCESS_DENIED") {
-  showAccessDeniedPage(); // Dedicated 403 page
-  // No toast
-}
-
-if (error.code === "DOMAIN_NOT_ALLOWED") {
-  showBlockingError(error.message); // During login flow
-}
-```
-
-#### 4. Resource Not Found
-
-```typescript
-if (error.code === "RESOURCE_NOT_FOUND") {
-  show404Page(); // Standard not found UI
-  // No toast, no error message
-}
-
-if (error.code === "RESOURCE_NOT_AVAILABLE") {
-  showArchivedBadge(); // "This paper has been archived"
-  // No toast, not treated as error
-}
-```
-
-#### 5. Business Rule Violations
-
-```typescript
-if (error.code === "DUPLICATE_REQUEST") {
-  toast.warning(error.message); // Page-level alert
-  // Optionally navigate to existing request
-}
-
-if (error.code === "REQUEST_ALREADY_FINAL") {
-  toast.info(error.message);
-  refreshRequestList(); // Update UI state
-}
-```
-
-#### 6. System Errors
-
-```typescript
-if (error.code === "INTERNAL_ERROR" || error.code === "FILE_STORAGE_ERROR") {
-  showGlobalError({
-    message: error.message,
-    traceId: error.traceId, // For support/bug reports
-    retryable: false,
-  });
-}
-
-if (error.code === "SERVICE_UNAVAILABLE") {
-  showRetryUI({
-    message: "Service temporarily unavailable",
-    retryAfter: error.details?.retryAfter || 30,
-  });
-}
-```
-
-#### 7. Rate Limiting
-
-```typescript
-if (error.code === "RATE_LIMIT_EXCEEDED") {
-  const retryAfter = error.details?.retryAfter || 60;
-  toast.error(`Too many requests. Try again in ${retryAfter} seconds.`);
-  disableSubmitButton(retryAfter);
-}
-```
-
-**Rate Limiting Error Response Example:**
-
-```json
-{
-  "code": "RATE_LIMIT_EXCEEDED",
-  "message": "Too many requests. Please try again later.",
-  "details": {
-    "limit": 5,
-    "window": "1 minute",
-    "retryAfter": 42
-  },
-  "traceId": "c3d7e2f9"
-}
-```
-
-#### 8. File Upload Errors
-
-```typescript
-if (error.code === "FILE_TOO_LARGE") {
-  showUploadError("File size exceeds 20MB limit");
-}
-
-if (error.code === "UNSUPPORTED_MEDIA_TYPE") {
-  showUploadError("Only PDF and DOCX files are supported");
-}
-```
-
----
-
 ### Security Considerations
 
 1. **Information Leakage Prevention**
@@ -393,7 +104,7 @@ if (error.code === "UNSUPPORTED_MEDIA_TYPE") {
 
 3. **Rate Limiting Errors**
    - HTTP 429 responses include `Retry-After` header (seconds)
-   - `details.retryAfter` provides same value in JSON for easier frontend handling
+   - `details. retryAfter` provides same value in JSON for easier frontend handling
    - Frontend **MUST** disable submission during retry window
 
 4. **Audit Requirements**
@@ -406,68 +117,14 @@ if (error.code === "UNSUPPORTED_MEDIA_TYPE") {
 
 ## Roles and Access Rules
 
-| Role             | Paper Metadata (Browsing)  | Download/View Full Paper                        | CRUD | Request Approval | Archived Behavior                                            |
-| ---------------- | -------------------------- | ----------------------------------------------- | ---- | ---------------- | ------------------------------------------------------------ |
-| STUDENT          | Active papers only         | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Cannot access archived                                       |
-| TEACHER          | All papers (including archived) | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Sees metadata for archived, cannot request/download archived |
-| DEPARTMENT_ADMIN | All papers                 | Full access (active + archived)                 | ✅   | ✅               | Can archive/unarchive papers                                 |
-| SUPER_ADMIN      | All papers                 | Full access                                     | ✅   | ✅               | Can archive/unarchive papers globally                        |
+| Role             | Department | Can View Metadata                               | Can Download/View PDF                           | Can CRUD Papers             | Can Approve/Reject Requests                 |
+| ---------------- | ---------- | ----------------------------------------------- | ----------------------------------------------- | --------------------------- | ------------------------------------------- |
+| STUDENT          | null       | All non-archived papers, all departments        | Only if request ACCEPTED and paper not archived | No                          | No                                          |
+| TEACHER          | null       | All papers, including archived, all departments | Only if request ACCEPTED and paper not archived | No                          | No                                          |
+| DEPARTMENT_ADMIN | Required   | All papers, including archived, all departments | Full for their department                       | Full for their department   | Approve/reject requests in their department |
+| SUPER_ADMIN      | null       | All papers, including archived, all departments | Full across all departments                     | Full across all departments | Full across all departments                 |
 
-**Important:** DEPARTMENT_ADMIN sees all papers across all departments on the homepage and when using `/api/papers`. Department scoping applies **only** to admin-specific endpoints (`/api/admin/papers` and `/api/admin/requests`).
-
----
-
-## Domain Types
-
-```ts
-type Role = "STUDENT" | "TEACHER" | "DEPARTMENT_ADMIN" | "SUPER_ADMIN";
-type RequestStatus = "PENDING" | "ACCEPTED" | "REJECTED";
-
-interface Department {
-  departmentId: number;
-  departmentName: string;
-}
-
-interface User {
-  userId: number;
-  email: string;
-  fullName: string;
-  role: Role;
-  department: Department | null;
-}
-
-interface ResearchPaper {
-  paperId: number;
-  title: string;
-  authorName: string;
-  abstractText: string;
-  department: Department;
-  submissionDate: string; // YYYY-MM-DD
-  filePath: string; // relative file path, e.g.  '2023/dept_cs/paper_123.pdf'
-  archived: boolean;
-  archivedAt?: string | null;
-}
-
-interface DocumentRequest {
-  requestId: number;
-  status: RequestStatus;
-  requestDate: string; // YYYY-MM-DD
-  paper: ResearchPaper;
-  requester: User;
-}
-
-interface ApiError {
-  code: string;
-  message: string;
-  details?: Array<{ field: string; message: string }>;
-  traceId?: string;
-}
-
-interface FilterOptions {
-  years: number[];
-  departments: Department[];
-}
-```
+**Note:** This table describes homepage behavior (`/` route, `/api/papers` endpoint). For admin-specific pages and endpoints (`/api/admin/*`), DEPARTMENT_ADMIN operations are scoped to their assigned department only. See Admin Papers and Admin Requests sections for department-scoped behavior.
 
 ---
 
@@ -579,9 +236,9 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 **Notes:**
 
-1.  **Rotation:** The old refresh token (from the request cookie) is invalidated. A new one is issued in the response `Set-Cookie` header.
-2.  **Security:** The browser manages the cookie storage automatically. The frontend must **not** attempt to read or store this token manually.
-3.  **Logout:** The `Max-Age=0` directive in the logout response forces the browser to delete the cookie immediately.
+1. **Rotation:** The old refresh token (from the request cookie) is invalidated. A new one is issued in the response `Set-Cookie` header.
+2. **Security:** The browser manages the cookie storage automatically. The frontend must **not** attempt to read or store this token manually.
+3. **Logout:** The `Max-Age=0` directive in the logout response forces the browser to delete the cookie immediately.
 
 ### GET /api/users/me
 
@@ -600,10 +257,10 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 **Authorization Scoping:**
 
-- **STUDENT**: Only years with non-archived papers
-- **TEACHER**: All years with papers (including archived)
-- **DEPARTMENT_ADMIN**: All years with papers (including archived, all departments)
-- **SUPER_ADMIN**: All years with papers (including archived)
+- **STUDENT**: Only years with non-archived papers (all departments)
+- **TEACHER**: All years with papers, including archived (all departments)
+- **DEPARTMENT_ADMIN**: All years with papers, including archived (all departments)
+- **SUPER_ADMIN**: All years with papers, including archived (all departments)
 
 **Response Example:**
 
@@ -616,7 +273,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 - Returns years in descending order (newest first)
 - Empty array if no papers exist within user's scope
 - Years are extracted from paper `submissionDate` field
-- **Context-based scoping:** When this endpoint is used from the homepage, DEPARTMENT_ADMIN sees all years across all departments. When used from admin pages (`/department-admin/research`), the backend should scope to their department only. Consider implementing a `scope` query parameter (e.g., `?scope=admin`) to distinguish between contexts.
+- Frontend may filter displayed options based on page context (e.g., show only user's department years on admin pages using auth context)
 
 ---
 
@@ -627,10 +284,10 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 **Authorization Scoping:**
 
-- **STUDENT**: All departments (students can view papers from any department)
-- **TEACHER**: All departments (teachers can view papers from any department)
-- **DEPARTMENT_ADMIN**: All departments (when viewing homepage; dept-scoped on admin pages)
-- **SUPER_ADMIN**: All departments
+- **STUDENT**: All departments (all departments)
+- **TEACHER**: All departments (all departments)
+- **DEPARTMENT_ADMIN**: All departments (all departments)
+- **SUPER_ADMIN**: All departments (all departments)
 
 **Response Example:**
 
@@ -647,7 +304,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 - Returns departments in alphabetical order by `departmentName`
 - Only includes departments that have at least one paper within user's scope
 - Empty array if no departments have accessible papers
-- **Context-based scoping:** When this endpoint is used from the homepage, DEPARTMENT_ADMIN sees all departments. When used from admin pages (`/department-admin/research`), the backend should return only their assigned department. Consider implementing a `scope` query parameter (e.g., `?scope=admin`) to distinguish between contexts.
+- Frontend may filter displayed options based on page context (e.g., show only user's department on admin pages using auth context)
 
 ---
 
@@ -682,12 +339,12 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 **Authorization Scoping:**
 
-| Role             | Scope                                               | Can Use `archived` Param |
-| ---------------- | --------------------------------------------------- | ------------------------ |
-| STUDENT          | Non-archived papers only (all departments)          | ❌ (403 ACCESS_DENIED)   |
-| TEACHER          | All papers including archived (all departments)     | ❌ (403 ACCESS_DENIED)   |
-| DEPARTMENT_ADMIN | All papers (all departments)                        | ✅                       |
-| SUPER_ADMIN      | All papers (all departments)                        | ✅                       |
+| Role             | Scope                                           | Can Use `archived` Param |
+| ---------------- | ----------------------------------------------- | ------------------------ |
+| STUDENT          | Non-archived papers only (all departments)      | ❌ (403 ACCESS_DENIED)   |
+| TEACHER          | All papers including archived (all departments) | ❌ (403 ACCESS_DENIED)   |
+| DEPARTMENT_ADMIN | All papers (all departments)                    | ✅                       |
+| SUPER_ADMIN      | All papers (all departments)                    | ✅                       |
 
 **Important:** DEPARTMENT_ADMIN department scoping applies **only** to `/api/admin/papers` and `/api/admin/requests` endpoints, not to `/api/papers`. This endpoint always returns papers from all departments for DEPARTMENT_ADMIN, matching the homepage behavior.
 
@@ -700,7 +357,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
       "paperId": 123,
       "title": "Machine Learning in Healthcare",
       "authorName": "Dr. Jane Smith",
-      "abstractText": "This paper explores the application of machine learning...",
+      "abstractText": "This paper explores the application of machine learning.. .",
       "department": {
         "departmentId": 1,
         "departmentName": "Computer Science"
@@ -728,40 +385,6 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 | Invalid `year` format                 | 400  | INVALID_REQUEST | "Invalid year format. Must be a 4-digit year (e.g., 2023)"       |
 | Invalid `departmentId` format         | 400  | INVALID_REQUEST | "Invalid department ID format"                                   |
 | Invalid `page` or `size`              | 400  | INVALID_REQUEST | "Invalid pagination parameters"                                  |
-
-**Example Requests:**
-
-```
-# Search for papers containing "machine learning"
-GET /api/papers?search=machine%20learning
-
-# Filter by multiple departments
-GET /api/papers?departmentId=1,3,5
-
-# Filter by year
-GET /api/papers?year=2023
-
-# Combine search with filters and sorting
-GET /api/papers?search=neural&departmentId=1&year=2023&sortBy=title&sortOrder=asc
-
-# Admin viewing archived papers
-GET /api/papers?archived=true&sortBy=submissionDate&sortOrder=desc
-```
-
-**Backend SQL Query Example:**
-
-```sql
--- Note: Database uses snake_case field names; API uses camelCase
-SELECT * FROM research_papers
-WHERE (title ILIKE '%search_term%'
-   OR author_name ILIKE '%search_term%'
-   OR abstract_text ILIKE '%search_term%')
-AND department_id IN (1, 3, 5)
-AND EXTRACT(YEAR FROM submission_date) = 2023
-AND archived = false
-ORDER BY submission_date DESC
-LIMIT 20 OFFSET 0;
-```
 
 **Security Considerations:**
 

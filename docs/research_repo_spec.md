@@ -8,7 +8,7 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 
 - Purpose: A gated school research repository where students can browse paper metadata, request access to full documents, and where admins manage papers and requests.
 - Authentication: Google SSO restricted to `@acdeducation.com`.
-- Authorization: Access tokens (JWT) with role-based access (STUDENT, TEACHER, DEPARTMENT_ADMIN, SUPER_ADMIN). Department scoping for DEPARTMENT_ADMIN applies only to admin operations (paper CRUD, request approvals, file downloads); homepage browsing shows all departments.
+- Authorization: Access tokens (JWT) with role-based access (STUDENT, TEACHER, DEPARTMENT_ADMIN, SUPER_ADMIN). Department scoping for DEPARTMENT_ADMIN applies only to admin operations (paper CRUD, request approvals); homepage browsing shows all departments.
 - Data contract: API returns UI-ready, nested objects (no raw IDs-only responses).
 - File access:
   - Students: only if their request is ACCEPTED **and** the paper is not archived.
@@ -17,20 +17,24 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 
 - Archive feature:
   - Papers can be archived/unarchived by admins.
-  - Archived papers are hidden from students’ library.
+  - Archived papers are hidden from students' library.
   - Archived papers are visible in teacher view (can see metadata but cannot request or download).
-  - Students with previously ACCEPTED requests cannot download archived papers; UI should badge “Archived”.
+  - Students with previously ACCEPTED requests cannot download archived papers; UI should badge "Archived".
 
 ---
 
 ## Roles & Capabilities
 
-| Role             | Department | Can View Metadata               | Can Download/View PDF                           | Can CRUD Papers             | Can Approve/Reject Requests                 |
-| ---------------- | ---------- | ------------------------------- | ----------------------------------------------- | --------------------------- | ------------------------------------------- |
-| STUDENT          | null       | Non-archived papers             | Only if request ACCEPTED and paper not archived | No                          | No                                          |
-| TEACHER          | null       | All papers (including archived) | Only if request ACCEPTED and paper not archived | No                          | No                                          |
-| DEPARTMENT_ADMIN | Required   | All papers (including archived) | Full for their department                       | Full for their department   | Approve/reject requests in their department |
-| SUPER_ADMIN      | null       | All papers (including archived) | Full across all departments                     | Full across all departments | Full across all departments                 |
+| Role             | Department | Can View Metadata                               | Can Download/View PDF                           | Can CRUD Papers             | Can Approve/Reject Requests                 |
+| ---------------- | ---------- | ----------------------------------------------- | ----------------------------------------------- | --------------------------- | ------------------------------------------- |
+| STUDENT          | null       | All non-archived papers, all departments        | Only if request ACCEPTED and paper not archived | No                          | No                                          |
+| TEACHER          | null       | All papers, including archived, all departments | Only if request ACCEPTED and paper not archived | No                          | No                                          |
+| DEPARTMENT_ADMIN | Required   | All papers, including archived, all departments | Full for their department                       | Full for their department   | Approve/reject requests in their department |
+| SUPER_ADMIN      | null       | All papers, including archived, all departments | Full across all departments                     | Full across all departments | Full across all departments                 |
+
+**Note:** This table describes homepage behavior (`/` route, `/api/papers` endpoint). For admin-specific pages and endpoints (`/api/admin/*`), DEPARTMENT_ADMIN operations are scoped to their assigned department only. See Admin Papers and Admin Requests sections in the API Contract for department-scoped behavior.
+
+---
 
 ### Page Access
 
@@ -52,15 +56,17 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
   - `/super-admin/requests` → Request approvals (global)
   - `/super-admin/research` → Paper management (global)
 
-**Note:** DEPARTMENT_ADMIN sees all papers across all departments on the homepage (`/`), but their admin-specific pages (`/department-admin/requests` and `/department-admin/research`) are scoped to their department only.
-
 ---
 
 ## Frontend Considerations
 
 - Common API endpoints for filters (all roles):
-  - `GET /api/filters/years` → returns years with role-based scoping
+  - `GET /api/filters/years` → returns years based on role-scoped visibility
   - `GET /api/filters/departments` → returns departments alphabetically sorted
+
+- Frontend filtering and display:
+  - Filter endpoints return all accessible data; frontend may filter displayed options based on page context (e.g., show only user's department on admin pages)
+  - Use auth context (role, departmentId from JWT) to conditionally render or filter UI elements
 
 - Search and filtering capabilities:
   - Full-text search across paper title, author name, and abstract
@@ -68,21 +74,6 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
   - Year-based filtering for submission dates
   - Sorting options: by submission date (default), title, or author name
   - Sort order: ascending or descending (descending is default)
-
-- Frontend implementation recommendations:
-  - Use debouncing (300ms) for search input to reduce API calls
-  - Multi-select dropdown for departments with checkboxes
-  - Single-select dropdown for year filter
-  - Sort dropdown with 6 options: newest first, oldest first, title A-Z, title Z-A, author A-Z, author Z-A
-  - Display "Clear all filters" button when any filter is active
-  - Show active filter count badge
-
-- Teachers see archived papers metadata but can only download files if they have an ACCEPTED request for non-archived papers.
-
-- Students see only non-archived papers; download restricted by request status and archive state.
-- Teachers can request non-archived papers only (same validation rules as students: paper must exist, not be archived, with only one active request per paper). Teachers can view archived paper metadata but cannot request archived papers.
-- Students and teachers can delete their own REJECTED requests to submit new ones.
-- Database constraint prevents duplicate PENDING/ACCEPTED requests, handling race conditions from double-clicks.
 
 ---
 
@@ -92,8 +83,8 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 - **Backend:** Java 21, Spring Boot 3, Spring Web, Security, Data JPA, Validation, Flyway, PostgreSQL
 - JWT-based authentication
 - Google ID Token verification for SSO
-- springdoc-openapi for Swagger (later)
-- Docker (deployment)
+- springdoc-openapi for Swagger
+- Docker
 
 ---
 
@@ -112,140 +103,11 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 
 ## Database Schema
 
-```sql
-CREATE TABLE departments (
-    department_id SERIAL PRIMARY KEY,
-    department_name VARCHAR(64) UNIQUE NOT NULL
-);
-
-CREATE TABLE users (
-    user_id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    full_name VARCHAR(255) NOT NULL,
-    role user_role NOT NULL DEFAULT 'STUDENT',
-    department_id INT NULL REFERENCES departments(department_id) ON DELETE SET NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT now(),
-    updated_at TIMESTAMP NOT NULL DEFAULT now()
-);
-
-CREATE TABLE research_papers (
-    paper_id SERIAL PRIMARY KEY,
-    title TEXT NOT NULL,
-    author_name VARCHAR(255) NOT NULL,
-    abstract_text TEXT NOT NULL,
-    file_path VARCHAR(512) NOT NULL, -- relative file path, e.g. '2023/dept_cs/paper_123.pdf', not full API URL
-    department_id INT NOT NULL REFERENCES departments(department_id) ON DELETE RESTRICT,
-    submission_date DATE NOT NULL,
-    archived BOOLEAN NOT NULL DEFAULT FALSE,
-    archived_at TIMESTAMP NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT now(),
-    updated_at TIMESTAMP NOT NULL DEFAULT now()
-);
-
-CREATE TABLE document_requests (
-    request_id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    paper_id INT NOT NULL REFERENCES research_papers(paper_id) ON DELETE CASCADE,
-    request_date TIMESTAMP NOT NULL DEFAULT now(),
-    status request_status NOT NULL DEFAULT 'PENDING',
-);
--- Partial unique index to prevent duplicate PENDING or ACCEPTED requests for same user/paper
-CREATE UNIQUE INDEX idx_unique_pending_accepted_request
-ON document_requests (user_id, paper_id)
-WHERE status IN ('PENDING', 'ACCEPTED');
-```
-
 For the full database migration, see the [Database Migration](/docs/database_migration.md).
 
 ---
 
-## Domain Types (Frontend)
-
-```typescript
-export type Role = "STUDENT" | "TEACHER" | "DEPARTMENT_ADMIN" | "SUPER_ADMIN";
-export type RequestStatus = "PENDING" | "ACCEPTED" | "REJECTED";
-
-export interface Department {
-  departmentId: number;
-  departmentName: string;
-}
-
-export interface User {
-  userId: number;
-  email: string;
-  fullName: string;
-  role: Role;
-  department: Department | null;
-}
-
-export interface ResearchPaper {
-  paperId: number;
-  title: string;
-  authorName: string;
-  abstractText: string;
-  department: Department;
-  submissionDate: string; // YYYY-MM-DD
-  filePath: string; // relative file path, e.g. '2023/dept_cs/paper_123.pdf'; full URL constructed dynamically by DTO/Mapper layer
-  archived: boolean;
-  archivedAt?: string | null; // YYYY-MM-DD or ISO datetime
-}
-
-export interface DocumentRequest {
-  requestId: number;
-  status: RequestStatus;
-  requestDate: string; // YYYY-MM-DD
-  paper: ResearchPaper; // nested
-  requester: User; // nested
-}
-
-export interface FilterOptions {
-  years: number[];
-  departments: Department[];
-}
-```
-
----
-
-## API Endpoints (Summary)
-
-**Authentication**
-
-- `POST /api/auth/google` → Google ID token (returns access and refresh tokens)
-- `POST /api/auth/refresh` → Refresh access token using refresh token
-- `POST /api/auth/logout` → Revoke refresh token and clear cookie
-
-**User**
-
-- `GET /api/users/me` → current user
-
-**Filters**
-
-- `GET /api/filters/years` → years with papers (role-based scoping)
-- `GET /api/filters/departments` → departments with papers (alphabetically sorted)
-
-**Papers**
-
-- `GET /api/papers` → paginated with search, multi-department filter, year filter, and sorting
-- `GET /api/papers/{id}` → specific paper
-
-**Student/Teacher Requests**
-
-- `GET /api/users/me/requests` → own requests (STUDENT and TEACHER roles)
-- `POST /api/requests` → create new request (STUDENT and TEACHER roles)
-- `DELETE /api/requests/{requestId}` → delete own request (enables re-requesting after rejection)
-
-**Admin Requests**
-
-- `GET /api/admin/requests` → scoped by department or all
-- `PUT /api/admin/requests/{id}` → approve/reject
-
-**Admin Papers**
-
-- `POST /api/admin/papers` → create paper (multipart upload with two parts: `metadata` as stringified JSON and `file`)
-- `PUT /api/admin/papers/{id}` → update fields
-- `DELETE /api/admin/papers/{id}` → delete
-- `PUT /api/admin/papers/{id}/archive` and `/unarchive` → idempotent operations
-- `GET /api/admin/papers` → list with filters + pagination
+## API Endpoints
 
 For detailed API documentation including request/response schemas, error codes, and authorization requirements, see the full [API Contract](/docs/api_contract.md).
 
@@ -317,119 +179,4 @@ For detailed API documentation including request/response schemas, error codes, 
 
 ## Error & Validation Conventions
 
-### Canonical Error Response (Authoritative)
-
-All error responses **MUST** conform to this structure:
-
-```json
-{
-  "code": "ACCESS_DENIED",
-  "message": "You do not have permission to perform this action.",
-  "details": [
-    {
-      "field": "paperId",
-      "message": "Paper belongs to another department"
-    }
-  ],
-  "traceId": "7f2c9b18c6e4"
-}
-```
-
-### Field Semantics
-
-| Field     | Type    | Required | Description                                                        |
-| --------- | ------- | -------- | ------------------------------------------------------------------ |
-| `code`    | string  | Yes      | Machine-readable error code (stable across versions)               |
-| `message` | string  | Yes      | User-safe, localized-ready error message                           |
-| `details` | array   | No       | Structured validation errors (array of `{field, message}` objects) |
-| `traceId` | string  | No       | Correlation ID for log lookup and support                          |
-
-### Contract Guarantees
-
-1. `code` is **always present** and stable across API versions
-2. `message` is **always user-safe** (no stack traces, SQL errors, or file paths)
-3. `details` is **structured** (never free-form strings)
-4. Frontend **MUST route on `code`** for logic; `message` MAY be used for display
-
-### HTTP Status to Error Code Mapping
-
-| HTTP | Condition                                                                                      |
-| ---- | ---------------------------------------------------------------------------------------------- |
-| 400  | Validation error or malformed request                                                          |
-| 401  | Missing/invalid access token (JWT) or expired refresh token                                    |
-| 403  | Role/department scope failed or domain not allowed                                             |
-| 404  | Not found (paper, request, file; also used to prevent leaking archived papers)                 |
-| 409  | Duplicate active request (PENDING or ACCEPTED for same user+paper) or invalid state transition |
-| 413  | File too large                                                                                 |
-| 415  | Unsupported file type                                                                          |
-| 429  | Rate limit exceeded                                                                            |
-| 500  | Internal server error or file storage failure                                                  |
-| 503  | Service unavailable (database or external service down)                                        |
-
-### Complete Error Code Registry
-
-| Code                   | HTTP | Category | Meaning                                                         |
-| ---------------------- | ---- | -------- | --------------------------------------------------------------- |
-| VALIDATION_ERROR       | 400  | Input    | Field-level validation failed                                   |
-| INVALID_REQUEST        | 400  | Input    | Malformed JSON or missing required fields                       |
-| UNAUTHENTICATED        | 401  | Auth     | Missing or invalid JWT access token                             |
-| REFRESH_TOKEN_REVOKED  | 401  | Auth     | Refresh token is invalid, expired, or revoked                   |
-| ACCESS_DENIED          | 403  | AuthZ    | User lacks required role or department scope                    |
-| DOMAIN_NOT_ALLOWED     | 403  | Auth     | Email domain not in whitelist                                   |
-| RESOURCE_NOT_FOUND     | 404  | Data     | Resource does not exist (or user cannot know it exists)         |
-| RESOURCE_NOT_AVAILABLE | 404  | Data     | Resource exists but is archived/inaccessible                    |
-| DUPLICATE_REQUEST      | 409  | Business | Active request (PENDING/ACCEPTED) already exists for this paper |
-| REQUEST_ALREADY_FINAL  | 409  | Business | Cannot modify request in terminal state                         |
-| FILE_TOO_LARGE         | 413  | Upload   | File exceeds 20MB limit                                         |
-| UNSUPPORTED_MEDIA_TYPE | 415  | Upload   | File is not PDF or DOCX                                         |
-| RATE_LIMIT_EXCEEDED    | 429  | System   | Too many requests in time window                                |
-| INTERNAL_ERROR         | 500  | System   | Unhandled server error                                          |
-| FILE_STORAGE_ERROR     | 500  | System   | File missing on disk or I/O failure                             |
-| SERVICE_UNAVAILABLE    | 503  | System   | Database or external service down                               |
-
-### Security Considerations for Error Handling
-
-1. **Information Leakage Prevention**
-   - `RESOURCE_NOT_AVAILABLE` (archived papers) returns HTTP 404, not 403, to prevent enumeration attacks
-   - Students receive identical 404 responses for non-existent papers and papers they cannot access
-   - Error messages never reveal internal paths, SQL queries, or stack traces
-   - All refresh token failures return identical generic messages
-
-2. **Defensive Error Handling**
-   - All unhandled exceptions are caught by global exception handler and mapped to `INTERNAL_ERROR`
-   - Stack traces are logged server-side but never included in API response
-   - Database constraint violations are mapped to appropriate business error codes (e.g., duplicate request → `DUPLICATE_REQUEST`)
-   - File path traversal attempts are caught and return `INVALID_REQUEST`
-
-3. **Frontend Error Routing**
-   - Validation errors (`VALIDATION_ERROR`): Show inline field errors, no toast
-   - Auth errors (`UNAUTHENTICATED`, `REFRESH_TOKEN_REVOKED`): Redirect to login, no message
-   - AuthZ errors (`ACCESS_DENIED`): Show dedicated 403 page
-   - Resource errors (`RESOURCE_NOT_FOUND`, `RESOURCE_NOT_AVAILABLE`): Show 404 page or archived badge, no toast
-   - Business errors (`DUPLICATE_REQUEST`, `REQUEST_ALREADY_FINAL`): Page-level alert
-   - System errors (`INTERNAL_ERROR`, `FILE_STORAGE_ERROR`): Global error UI with trace ID
-   - Rate limit (`RATE_LIMIT_EXCEEDED`): Show countdown and disable submission
-
-4. **Audit Requirements**
-   - All `FILE_STORAGE_ERROR` occurrences trigger monitoring alerts (potential disk failure)
-   - All `INTERNAL_ERROR` responses logged with full stack trace server-side
-   - All authentication failures logged for security monitoring
-   - Rate limit violations logged for abuse detection
-
 For complete endpoint-specific error codes and frontend rendering rules, see the [API Contract](/docs/api_contract.md).
-
----
-
-## Configuration
-
-### Development vs Production Environment
-
-**Cookie Settings:**
-
-- **Production:** `SameSite=Strict`, `Secure=True`
-- **Development:** `SameSite=Lax`, `Secure=False` (to allow cross-origin requests between localhost:5173 and localhost:8080)
-
-**CORS Settings:**
-
-- **Development:** Allow requests from `http://localhost:5173`
-- **Production:** Restrict to frontend domain only
