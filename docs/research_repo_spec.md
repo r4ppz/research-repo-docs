@@ -8,7 +8,7 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 
 - Purpose: A gated school research repository where students can browse paper metadata, request access to full documents, and where admins manage papers and requests.
 - Authentication: Google SSO restricted to `@acdeducation.com`.
-- Authorization: Access tokens (JWT) with role-based access (STUDENT, TEACHER, DEPARTMENT_ADMIN, SUPER_ADMIN). Department scoping applies only to DEPARTMENT_ADMIN.
+- Authorization: Access tokens (JWT) with role-based access (STUDENT, TEACHER, DEPARTMENT_ADMIN, SUPER_ADMIN). Department scoping for DEPARTMENT_ADMIN applies only to admin operations (paper CRUD, request approvals, file downloads); homepage browsing shows all departments.
 - Data contract: API returns UI-ready, nested objects (no raw IDs-only responses).
 - File access:
   - Students: only if their request is ACCEPTED **and** the paper is not archived.
