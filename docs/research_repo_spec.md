@@ -29,28 +29,30 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 | ---------------- | ---------- | ------------------------------- | ----------------------------------------------- | --------------------------- | ------------------------------------------- |
 | STUDENT          | null       | Non-archived papers             | Only if request ACCEPTED and paper not archived | No                          | No                                          |
 | TEACHER          | null       | All papers (including archived) | Only if request ACCEPTED and paper not archived | No                          | No                                          |
-| DEPARTMENT_ADMIN | Required   | All papers in their department  | Full for their department                       | Full for their department   | Approve/reject requests in their department |
-| SUPER_ADMIN      | null       | All papers                      | Full across all departments                     | Full across all departments | Full across all departments                 |
+| DEPARTMENT_ADMIN | Required   | All papers (including archived) | Full for their department                       | Full for their department   | Approve/reject requests in their department |
+| SUPER_ADMIN      | null       | All papers (including archived) | Full across all departments                     | Full across all departments | Full across all departments                 |
 
 ### Page Access
 
 - **STUDENT**
-  - `/` → Library (non-archived)
+  - `/` → Library (non-archived papers, all departments)
   - `/student/requests` → Own requests
 
 - **TEACHER**
-  - `/` → Library (all papers metadata)
+  - `/` → Library (all papers metadata, all departments)
   - `/teacher/requests` → Own requests
 
 - **DEPARTMENT_ADMIN**
-  - `/` → Library (all papers metadata in dept)
-  - `/department-admin/requests` → Request approvals
-  - `/department-admin/research` → Paper management
+  - `/` → Library (all papers metadata, all departments)
+  - `/department-admin/requests` → Request approvals (dept-scoped)
+  - `/department-admin/research` → Paper management (dept-scoped)
 
 - **SUPER_ADMIN**
-  - `/` → Library
-  - `/super-admin/requests` → Request approvals
-  - `/super-admin/research` → Paper management
+  - `/` → Library (all papers, all departments)
+  - `/super-admin/requests` → Request approvals (global)
+  - `/super-admin/research` → Paper management (global)
+
+**Note:** DEPARTMENT_ADMIN sees all papers across all departments on the homepage (`/`), but their admin-specific pages (`/department-admin/requests` and `/department-admin/research`) are scoped to their department only.
 
 ---
 

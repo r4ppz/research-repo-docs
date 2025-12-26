@@ -410,8 +410,10 @@ if (error.code === "UNSUPPORTED_MEDIA_TYPE") {
 | ---------------- | -------------------------- | ----------------------------------------------- | ---- | ---------------- | ------------------------------------------------------------ |
 | STUDENT          | Active papers only         | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Cannot access archived                                       |
 | TEACHER          | All papers (metadata only) | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Sees metadata for archived, cannot request/download archived |
-| DEPARTMENT_ADMIN | Papers in their department | Full access (active + archived)                 | ✅   | ✅               | Can archive/unarchive papers                                 |
+| DEPARTMENT_ADMIN | All papers                 | Full access (active + archived)                 | ✅   | ✅               | Can archive/unarchive papers                                 |
 | SUPER_ADMIN      | All papers                 | Full access                                     | ✅   | ✅               | Can archive/unarchive papers globally                        |
+
+**Important:** DEPARTMENT_ADMIN sees all papers across all departments on the homepage and when using `/api/papers`. Department scoping applies **only** to admin-specific endpoints (`/api/admin/papers` and `/api/admin/requests`).
 
 ---
 
@@ -600,7 +602,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 - **STUDENT**: Only years with non-archived papers
 - **TEACHER**: All years with papers (including archived)
-- **DEPARTMENT_ADMIN**: Years with papers in their department (including archived)
+- **DEPARTMENT_ADMIN**: All years with papers (including archived, all departments)
 - **SUPER_ADMIN**: All years with papers (including archived)
 
 **Response Example:**
@@ -614,6 +616,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 - Returns years in descending order (newest first)
 - Empty array if no papers exist within user's scope
 - Years are extracted from paper `submissionDate` field
+- **Context-based scoping:** When this endpoint is used from the homepage, DEPARTMENT_ADMIN sees all years across all departments. When used from admin pages (`/department-admin/research`), the backend should scope to their department only. Consider implementing a `scope` query parameter (e.g., `?scope=admin`) to distinguish between contexts.
 
 ---
 
@@ -626,7 +629,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 - **STUDENT**: All departments (students can view papers from any department)
 - **TEACHER**: All departments (teachers can view papers from any department)
-- **DEPARTMENT_ADMIN**: Only their assigned department
+- **DEPARTMENT_ADMIN**: All departments (when viewing homepage; dept-scoped on admin pages)
 - **SUPER_ADMIN**: All departments
 
 **Response Example:**
@@ -644,6 +647,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 - Returns departments in alphabetical order by `departmentName`
 - Only includes departments that have at least one paper within user's scope
 - Empty array if no departments have accessible papers
+- **Context-based scoping:** When this endpoint is used from the homepage, DEPARTMENT_ADMIN sees all departments. When used from admin pages (`/department-admin/research`), the backend should return only their assigned department. Consider implementing a `scope` query parameter (e.g., `?scope=admin`) to distinguish between contexts.
 
 ---
 
@@ -680,10 +684,12 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 | Role             | Scope                                          | Can Use `archived` Param |
 | ---------------- | ---------------------------------------------- | ------------------------ |
-| STUDENT          | Non-archived papers only                       | ❌ (403 ACCESS_DENIED)   |
-| TEACHER          | All papers (metadata only)                     | ❌ (403 ACCESS_DENIED)   |
-| DEPARTMENT_ADMIN | Papers in their department (active + archived) | ✅                       |
-| SUPER_ADMIN      | All papers across all departments              | ✅                       |
+| STUDENT          | Non-archived papers only (all departments)     | ❌ (403 ACCESS_DENIED)   |
+| TEACHER          | All papers (metadata only, all departments)    | ❌ (403 ACCESS_DENIED)   |
+| DEPARTMENT_ADMIN | All papers (all departments)                   | ✅                       |
+| SUPER_ADMIN      | All papers (all departments)                   | ✅                       |
+
+**Important:** DEPARTMENT_ADMIN department scoping applies **only** to `/api/admin/papers` and `/api/admin/requests` endpoints, not to `/api/papers`. This endpoint always returns papers from all departments for DEPARTMENT_ADMIN, matching the homepage behavior.
 
 **Response Example:**
 
