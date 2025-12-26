@@ -406,10 +406,10 @@ if (error.code === "UNSUPPORTED_MEDIA_TYPE") {
 
 ## Roles and Access Rules
 
-| Role             | Paper Metadata             | Download/View                                   | CRUD | Request Approval | Archived Behavior                                            |
+| Role             | Paper Metadata (Browsing)  | Download/View Full Paper                        | CRUD | Request Approval | Archived Behavior                                            |
 | ---------------- | -------------------------- | ----------------------------------------------- | ---- | ---------------- | ------------------------------------------------------------ |
 | STUDENT          | Active papers only         | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Cannot access archived                                       |
-| TEACHER          | All papers (metadata only) | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Sees metadata for archived, cannot request/download archived |
+| TEACHER          | All papers (including archived) | Only if ACCEPTED request and paper not archived | ❌   | ❌               | Sees metadata for archived, cannot request/download archived |
 | DEPARTMENT_ADMIN | All papers                 | Full access (active + archived)                 | ✅   | ✅               | Can archive/unarchive papers                                 |
 | SUPER_ADMIN      | All papers                 | Full access                                     | ✅   | ✅               | Can archive/unarchive papers globally                        |
 
@@ -682,12 +682,12 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 **Authorization Scoping:**
 
-| Role             | Scope                                          | Can Use `archived` Param |
-| ---------------- | ---------------------------------------------- | ------------------------ |
-| STUDENT          | Non-archived papers only (all departments)     | ❌ (403 ACCESS_DENIED)   |
-| TEACHER          | All papers (metadata only, all departments)    | ❌ (403 ACCESS_DENIED)   |
-| DEPARTMENT_ADMIN | All papers (all departments)                   | ✅                       |
-| SUPER_ADMIN      | All papers (all departments)                   | ✅                       |
+| Role             | Scope                                               | Can Use `archived` Param |
+| ---------------- | --------------------------------------------------- | ------------------------ |
+| STUDENT          | Non-archived papers only (all departments)          | ❌ (403 ACCESS_DENIED)   |
+| TEACHER          | All papers including archived (all departments)     | ❌ (403 ACCESS_DENIED)   |
+| DEPARTMENT_ADMIN | All papers (all departments)                        | ✅                       |
+| SUPER_ADMIN      | All papers (all departments)                        | ✅                       |
 
 **Important:** DEPARTMENT_ADMIN department scoping applies **only** to `/api/admin/papers` and `/api/admin/requests` endpoints, not to `/api/papers`. This endpoint always returns papers from all departments for DEPARTMENT_ADMIN, matching the homepage behavior.
 

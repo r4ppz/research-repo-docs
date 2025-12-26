@@ -18,7 +18,7 @@ This spec is intentionally blunt and detailed. It is the **single source of trut
 - Archive feature:
   - Papers can be archived/unarchived by admins.
   - Archived papers are hidden from students’ library.
-  - Archived papers are visible in teacher view (metadata only) and in admin “Archived” view.
+  - Archived papers are visible in teacher view (can see metadata but cannot request or download).
   - Students with previously ACCEPTED requests cannot download archived papers; UI should badge “Archived”.
 
 ---
