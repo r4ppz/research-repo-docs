@@ -1,5 +1,42 @@
 # Research Repository — API Contract (Authoritative)
 
+<!--toc:start-->
+
+- [Research Repository — API Contract (Authoritative)](#research-repository-api-contract-authoritative)
+  - [Conventions](#conventions)
+  - [Error Handling](#error-handling)
+    - [Canonical Error Response](#canonical-error-response)
+      - [Field Semantics](#field-semantics)
+      - [Contract Guarantees](#contract-guarantees)
+    - [Error Code Registry](#error-code-registry)
+    - [Security Considerations](#security-considerations)
+  - [Roles and Access Rules](#roles-and-access-rules)
+  - [Authentication](#authentication)
+    - [POST /api/auth/google](#post-apiauthgoogle)
+    - [POST /api/auth/refresh](#post-apiauthrefresh)
+    - [POST /api/auth/logout](#post-apiauthlogout)
+    - [GET /api/users/me](#get-apiusersme)
+  - [Filters](#filters)
+    - [GET /api/filters/years](#get-apifiltersyears)
+    - [GET /api/filters/departments](#get-apifiltersdepartments)
+  - [Papers](#papers)
+    - [GET /api/papers](#get-apipapers)
+    - [GET /api/papers/{id}](#get-apipapersid)
+  - [Student/Teacher Requests](#studentteacher-requests)
+    - [GET /api/users/me/requests](#get-apiusersmerequests)
+    - [POST /api/requests](#post-apirequests)
+    - [DELETE /api/requests/{requestId}](#delete-apirequestsrequestid)
+  - [Admin Requests](#admin-requests)
+    - [GET /api/admin/requests](#get-apiadminrequests)
+    - [PUT /api/admin/requests/{id}](#put-apiadminrequestsid)
+  - [Admin Papers](#admin-papers)
+  - [Files](#files)
+    - [GET /api/files/{fileId}](#get-apifilesfileid)
+  - [Validation Rules](#validation-rules)
+  - [Statistics / Analytics](#statistics-analytics)
+  - [State Machines](#state-machines)
+  <!--toc:end-->
+
 **Base URL:** `http://localhost:8080` (dev)
 **All endpoints:** prefixed with `/api`. Only `/api/auth/**` is public; everything else requires JWT.
 
@@ -253,7 +290,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 ### GET /api/filters/years
 
 - **Authentication:** JWT required
-- **Response:** `number[]` - Array of years with papers
+- **Response:** `{ "years": number[] }` - An object containing array of years
 
 **Authorization Scoping:**
 
@@ -265,7 +302,9 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 **Response Example:**
 
 ```json
-[2025, 2024, 2023, 2022]
+{
+  "years": [2025, 2024, 2023, 2022]
+}
 ```
 
 **Notes:**
@@ -280,7 +319,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 ### GET /api/filters/departments
 
 - **Authentication:** JWT required
-- **Response:** `Department[]` - Array of departments
+- **Response:** `{ "departments": Department[] }` - An object containing array of departments
 
 **Authorization Scoping:**
 
@@ -292,16 +331,17 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 **Response Example:**
 
 ```json
-[
-  { "departmentId": 1, "departmentName": "Computer Science" },
-  { "departmentId": 2, "departmentName": "Mathematics" },
-  { "departmentId": 3, "departmentName": "Physics" }
-]
+{
+  "departments": [
+    { "departmentId": 1, "departmentName": "Computer Science" },
+    { "departmentId": 2, "departmentName": "Mathematics" },
+    { "departmentId": 3, "departmentName": "Physics" }
+  ]
+}
 ```
 
 **Notes:**
 
-- Returns departments in alphabetical order by `departmentName`
 - Only includes departments that have at least one paper within user's scope
 - Empty array if no departments have accessible papers
 - Frontend may filter displayed options based on page context (e.g., show only user's department on admin pages using auth context)
@@ -317,16 +357,16 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 **Query Parameters:**
 
-| Parameter      | Type   | Required | Description                                                                    |
-| -------------- | ------ | -------- | ------------------------------------------------------------------------------ |
-| `page`         | number | No       | Zero-indexed page number (default: 0)                                          |
-| `size`         | number | No       | Results per page (default: 20, max: 100)                                       |
-| `search`       | string | No       | Full-text search across title, author name, and abstract (case-insensitive)    |
-| `departmentId` | string | No       | Comma-separated list of department IDs (e.g., "1,3,5") for multi-select filter |
-| `year`         | number | No       | Filter by submission year (4-digit year, e.g., 2023)                           |
-| `archived`     | string | No       | Filter archived status: "true" or "false" (Admin-only)                         |
-| `sortBy`       | string | No       | Sort field: `submissionDate` (default), `title`, `authorName`                  |
-| `sortOrder`    | string | No       | Sort direction: `desc` (default), `asc`                                        |
+| Parameter      | Type   | Required | Description                                                                 |
+| -------------- | ------ | -------- | --------------------------------------------------------------------------- |
+| `page`         | number | No       | Zero-indexed page number (default: 0)                                       |
+| `size`         | number | No       | Results per page (default: 20, max: 100)                                    |
+| `search`       | string | No       | Full-text search across title, author name, and abstract (case-insensitive) |
+| `departmentId` | string | No       | Comma-separated list of department IDs (multiselect)                        |
+| `year`         | string | No       | Comma-separated list of by submission year (multiselect)                    |
+| `archived`     | string | No       | Filter archived status: "true" or "false" (Admin-only)                      |
+| `sortBy`       | string | No       | Sort field: `submissionDate` (default), `title`, `authorName`               |
+| `sortOrder`    | string | No       | Sort direction: `desc` (default), `asc`                                     |
 
 **Search Behavior:**
 
