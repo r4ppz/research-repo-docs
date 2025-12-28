@@ -435,7 +435,24 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 ### GET /api/papers/{id}
 
-- See endpoint-specific error codes above for detailed behavior
+- **Authentication:** JWT required
+- **Path Parameter:** `id` (number) — Paper ID
+- **Response:** `ResearchPaper` object
+- **Authorization Scoping:**
+  - **STUDENT:** Only non-archived papers, all departments
+  - **TEACHER:** All papers, including archived, all departments
+  - **DEPARTMENT_ADMIN:** All papers, including archived, all departments
+  - **SUPER_ADMIN:** All papers, including archived, all departments
+
+**Error Codes:**
+
+| Condition                                  | HTTP | Code               | Message            |
+| ------------------------------------------ | ---- | ------------------ | ------------------ |
+| Paper does not exist or inaccessible       | 404  | RESOURCE_NOT_FOUND | "Paper not found"  |
+| Paper is archived (student/teacher access) | 404  | RESOURCE_NOT_FOUND | "Paper not found"  |
+| Invalid paper ID format                    | 400  | INVALID_REQUEST    | "Invalid paper ID" |
+
+**Security:** Students/teachers receive identical 404 for non-existent and inaccessible/archived papers.
 
 ---
 
@@ -445,6 +462,21 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 - Returns all own requests for non-archived papers
 - Available to STUDENT and TEACHER roles
+- **Response:**
+  ```json
+  {
+    "requests": [
+      {
+        "requestId": 1,
+        "paperId": 123,
+        "status": "PENDING",
+        "createdAt": "2024-06-01T12:00:00Z",
+        "updatedAt": "2024-06-01T12:00:00Z"
+      }
+    ]
+  }
+  ```
+- **Errors:** 401 UNAUTHENTICATED
 
 ### POST /api/requests
 
@@ -454,12 +486,32 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 - Response: `{ "requestId": number }`
 - Available to STUDENT and TEACHER roles
 
+- **Request:**
+  ```json
+  { "paperId": 123 }
+  ```
+- **Response:**
+  ```json
+  { "requestId": 42 }
+  ```
+- **Errors:**
+  - 400 INVALID_REQUEST (missing/invalid paperId)
+  - 404 RESOURCE_NOT_FOUND (paper not found or archived)
+  - 409 DUPLICATE_REQUEST (active request exists)
+  - 401 UNAUTHENTICATED
+
 ### DELETE /api/requests/{requestId}
 
 - Deletes a user's own request (allows re-requesting after rejection)
 - Only available for REJECTED requests or PENDING requests created by the same user
 - Response: 204 No Content
 - Available to STUDENT and TEACHER roles (for their own requests)
+
+- **Response:** 204 No Content
+- **Errors:**
+  - 404 RESOURCE_NOT_FOUND (request not found or not owned by user)
+  - 403 ACCESS_DENIED (not allowed to delete)
+  - 401 UNAUTHENTICATED
 
 ---
 
