@@ -454,6 +454,29 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 **Security:** Students/teachers receive identical 404 for non-existent and inaccessible/archived papers.
 
+### GET /api/papers/{paperId}/my-request
+
+- Returns the current user's request for the specified paper, if it exists.
+- Available to STUDENT and TEACHER roles.
+
+- **Request:**
+- Method: GET
+- Path parameter: `paperId` (integer, required)
+- No request body.
+
+- **Response:**
+  ```json
+  {
+    "requestId": 42,
+    "status": "PENDING",
+    "createdAt": "2024-06-01T12:00:00Z",
+    "updatedAt": "2024-06-01T12:00:00Z"
+  }
+  ```
+- **Errors:**
+  - 404 RESOURCE_NOT_FOUND (no request for this paper/user)
+  - 401 UNAUTHENTICATED
+
 ---
 
 ## Student/Teacher Requests
