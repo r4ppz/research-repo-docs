@@ -460,7 +460,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 ### GET /api/users/me/requests
 
-- Returns all own requests for non-archived papers
+- Returns all own requests for non-archived papers, including detailed paper metadata
 - Available to STUDENT and TEACHER roles
 - **Response:**
   ```json
@@ -468,15 +468,36 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
     "requests": [
       {
         "requestId": 1,
-        "paperId": 123,
         "status": "PENDING",
         "createdAt": "2024-06-01T12:00:00Z",
-        "updatedAt": "2024-06-01T12:00:00Z"
+        "updatedAt": "2024-06-01T12:00:00Z",
+        "paper": {
+          "paperId": 123,
+          "title": "Machine Learning in Healthcare",
+          "authorName": "Dr. Jane Smith",
+          "abstractText": "This paper explores the application of machine learning in the medical field...",
+          "department": {
+            "departmentId": 1,
+            "departmentName": "Computer Science"
+          },
+          "submissionDate": "2023-09-15",
+          "filePath": "2023/dept_cs/paper_123.pdf",
+          "archived": false,
+          "archivedAt": null
+        }
       }
     ]
   }
   ```
-- **Errors:** 401 UNAUTHENTICATED
+- **Notes:**
+  - Includes all relevant paper metadata for rendering, eliminating the need for additional calls to `GET /api/papers/{id}`.
+  - This endpoint continues to return only requests for non-archived papers.
+  - Metadata fields are identical to the `GET /api/papers` response format for consistency.
+
+- **Errors:**
+  - 401 UNAUTHENTICATED
+
+---
 
 ### POST /api/requests
 
@@ -499,6 +520,8 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
   - 404 RESOURCE_NOT_FOUND (paper not found or archived)
   - 409 DUPLICATE_REQUEST (active request exists)
   - 401 UNAUTHENTICATED
+
+---
 
 ### DELETE /api/requests/{requestId}
 
