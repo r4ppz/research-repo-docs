@@ -565,15 +565,94 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 ### GET /api/admin/requests
 
-- JWT required (DEPARTMENT_ADMIN / SUPER_ADMIN)
-- `departmentId` optional for SUPER_ADMIN
-- Returns `DocumentRequest[]` scoped to department
+Retrieve a paginated list of document access requests relevant to admin roles.
 
-### PUT /api/admin/requests/{id}
+- **Authentication:** JWT required.
+  - Role required: `DEPARTMENT_ADMIN` (restricted), or `SUPER_ADMIN` (global).
+- **Endpoint:** `GET /api/admin/requests`
+- **Query Parameters:**
+  | Parameter | Type | Required | Description |
+  |-----------------|----------|----------|---------------------------------------------------------------------------------------------------|
+  | `departmentId` | string | No | Filter by department. **Allowed only for SUPER_ADMIN**. DEPARTMENT_ADMIN may NOT set this param. |
+  | `status` | string | No | Filter by request status: one or more of `PENDING`, `ACCEPTED`, `REJECTED` (comma-separated list) |
+  | `page` | number | No | Zero-indexed page number (default: 0) |
+  | `size` | number | No | Results per page (default: 20, max: 100) |
+  | `sortBy` | string | No | Field to sort by: `createdAt` (default), `status`, `paper.title`, `userId` |
+  | `sortOrder` | string | No | Sort direction: `desc` (default), `asc` |
 
-- Body: `{ "action": "accept" | "reject" }`
-- Must be PENDING
-- Response: 204
+- **Authorization Rules:**
+  - **DEPARTMENT_ADMIN:** Always scoped implicitly to their assigned department, ignores/forbids `departmentId` parameter
+  - **SUPER_ADMIN:** May filter by any department via `departmentId`, or view all by omitting
+
+- **Response:** Paginated list of requests in the following structure:
+
+```json
+{
+  "content": [
+    {
+      "requestId": 42,
+      "status": "PENDING",
+      "createdAt": "2024-06-01T12:00:00Z",
+      "updatedAt": "2024-06-01T12:00:00Z",
+      "user": {
+        "userId": 100,
+        "email": "bob@acdeducation.com",
+        "fullName": "Bob Example",
+        "role": "STUDENT"
+      },
+      "paper": {
+        "paperId": 123,
+        "title": "Machine Learning in Healthcare",
+        "authorName": "Jane Smith",
+        "abstractText": "...",
+        "department": {
+          "departmentId": 1,
+          "departmentName": "Computer Science"
+        },
+        "submissionDate": "2023-09-15",
+        "archived": false
+      }
+    }
+    // ... more requests
+  ],
+  "totalElements": 45,
+  "totalPages": 3,
+  "number": 0,
+  "size": 20
+}
+```
+
+- Each request **MUST** include fully expanded `user` and `paper` objects.
+- `department` is always nested inside `paper`.
+- No personal data beyond email, fullName, userId, and role is exposed.
+
+- **Allowed Status Transitions:**
+  - Only `PENDING` requests may be set to `ACCEPTED` or `REJECTED` via the admin action endpoint.
+  - Terminal states (`ACCEPTED`, `REJECTED`) are immutable via this endpoint.
+
+- **Security and Filtering:**
+  - DEPARTMENT_ADMIN can only see/access requests for their department—any attempt to view or act on others is 403.
+  - SUPER_ADMIN can filter all.
+
+- **Common Use-Cases:**
+  - Review all pending requests in department(s)
+  - Filter by status and sort by time
+  - See student/teacher submitters and associated paper context in one call
+
+- **Error Codes:**
+  | Condition | HTTP | Code | Message | Notes |
+  |------------------------------------------------------------|------|-------------------------|--------------------------------------------------------------------|------------------------------------------------------|
+  | Missing/Invalid JWT | 401 | UNAUTHENTICATED | "Authentication required" | Always returned for missing/invalid token |
+  | Insufficient privileges / cross-department access attempt | 403 | ACCESS_DENIED | "You do not have permission to view requests for this department" | Frontier must not allow users to craft broader query |
+  | Invalid query (malformed param, illegal status, etc.) | 400 | INVALID_REQUEST | "Invalid query parameter: ..." | Details in `details` array |
+  | Nonexistent department ID supplied by SUPER_ADMIN | 404 | RESOURCE_NOT_FOUND | "Department not found" | DepartmentId must exist |
+  | DEPARTMENT_ADMIN attempts to specify `departmentId` param | 400 | INVALID_REQUEST | "departmentId filter not permitted for your role" | Reject, do not ignore silently |
+
+- **Notes:**
+  - Pagination follows the canonical response format used throughout the API.
+  - All sort and filter fields are validated; unrecognized or illegal values return 400 with meaningful error codes.
+  - Embedded object shape is stable and UI-ready; no IDs-only “raw” responses.
+  - All date/timestamps are ISO 8601 UTC.
 
 ---
 
