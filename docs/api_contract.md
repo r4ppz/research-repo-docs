@@ -490,87 +490,106 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 ### GET /api/users/me/requests
 
-- Returns all own requests for non-archived papers, including detailed paper metadata
-- Available to STUDENT and TEACHER roles
-- **Response:**
+Retrieve a paginated and filterable list of requests created by the authenticated user.
 
-  ```json
-  {
-    "requests": [
-      {
-        "requestId": 1,
-        "status": "PENDING",
-        "createdAt": "2024-06-01T12:00:00Z",
-        "updatedAt": "2024-06-01T12:00:00Z",
-        "paper": {
-          "paperId": 123,
-          "title": "Machine Learning in Healthcare",
-          "authorName": "Dr. Jane Smith",
-          "abstractText": "This paper explores the application of machine learning in the medical field...",
-          "department": {
-            "departmentId": 1,
-            "departmentName": "Computer Science"
-          },
-          "submissionDate": "2023-09-15",
-          "filePath": "2023/dept_cs/paper_123.pdf",
-          "archived": false,
-          "archivedAt": null
-        }
+- **Authentication:** JWT Required (`STUDENT` or `TEACHER`).
+- **Authorization:** Users can only see their own requests.
+- **Query Parameters:**
+
+| Parameter   | Type   | Required | Description                                                     |
+| ----------- | ------ | -------- | --------------------------------------------------------------- |
+| `page`      | number | No       | Zero-indexed page number (default: 0).                          |
+| `size`      | number | No       | Results per page (default: 20, max: 100).                       |
+| `status`    | string | No       | Filter by request status: `PENDING`, `ACCEPTED`, or `REJECTED`. |
+| `search`    | string | No       | Partial match against `paper.title` or `paper.authorName`.      |
+| `sortBy`    | string | No       | Sort field: `createdAt` (default), `paper.title`, or `status`.  |
+| `sortOrder` | string | No       | Sort direction: `desc` (default) or `asc`.                      |
+
+- **Response (200 OK):**
+
+```json
+{
+  "content": [
+    {
+      "requestId": 42,
+      "status": "PENDING",
+      "createdAt": "2024-06-01T12:00:00Z",
+      "updatedAt": "2024-06-01T12:00:00Z",
+      "paper": {
+        "paperId": 123,
+        "title": "Machine Learning in Healthcare",
+        "authorName": "Dr. Jane Smith",
+        "abstractText": "This paper explores the application of machine learning...",
+        "department": {
+          "departmentId": 1,
+          "departmentName": "Computer Science"
+        },
+        "submissionDate": "2023-09-15",
+        "filePath": "2023/dept_cs/paper_123.pdf",
+        "archived": false,
+        "archivedAt": null
       }
-    ]
-  }
-  ```
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "number": 0,
+  "size": 20
+}
+```
 
 - **Notes:**
-  - Includes all relevant paper metadata for rendering, eliminating the need for additional calls to `GET /api/papers/{id}`.
-  - This endpoint continues to return only requests for non-archived papers.
-  - Metadata fields are identical to the `GET /api/papers` response format for consistency.
+- **Archived Papers:** This endpoint **MUST NOT** return requests for papers where `archived: true`. If a paper is archived after a request is made, that request is hidden from this list to prevent information leakage.
+- **Metadata:** Includes the full `paper` and nested `department` objects to allow the frontend to render the card/row without secondary API calls.
 
-- **Errors:**
-  - 401 UNAUTHENTICATED
+- **Error Codes:**
+
+| Condition             | HTTP | Code              | Message                                                  |
+| --------------------- | ---- | ----------------- | -------------------------------------------------------- |
+| Missing/Invalid JWT   | 401  | `UNAUTHENTICATED` | "Authentication required"                                |
+| Invalid status filter | 400  | `INVALID_REQUEST` | "Invalid status. Must be PENDING, ACCEPTED, or REJECTED" |
+| Invalid sort field    | 400  | `INVALID_REQUEST` | "Invalid sort field"                                     |
 
 ---
 
 ### POST /api/requests
 
-- Create new request
-- Paper must exist and not be archived
-- Only one PENDING or ACCEPTED request allowed per user/paper (enforced by database partial unique index) → **409 DUPLICATE_REQUEST**
-- Response: `{ "requestId": number }`
-- Available to STUDENT and TEACHER roles
+Create a new access request for a research paper.
 
-- **Request:**
+- **Request Body:**
 
-  ```json
-  { "paperId": 123 }
-  ```
+```json
+{
+  "paperId": 123
+}
+```
 
-- **Response:**
+- **Constraints:**
+- Only one active (`PENDING` or `ACCEPTED`) request allowed per user/paper.
+- Users can only request access to non-archived papers.
 
-  ```json
-  { "requestId": 42 }
-  ```
+- **Response (201 Created):**
+
+```json
+{
+  "requestId": 42,
+  "status": "PENDING"
+}
+```
 
 - **Errors:**
-  - 400 INVALID_REQUEST (missing/invalid paperId)
-  - 404 RESOURCE_NOT_FOUND (paper not found or archived)
-  - 409 DUPLICATE_REQUEST (active request exists)
-  - 401 UNAUTHENTICATED
+- `404 RESOURCE_NOT_FOUND`: Paper does not exist or is archived.
+- `409 DUPLICATE_REQUEST`: An active request already exists for this paper.
 
 ---
 
 ### DELETE /api/requests/{requestId}
 
-- Deletes a user's own request (allows re-requesting after rejection)
-- Only available for REJECTED requests or PENDING requests created by the same user
-- Response: 204 No Content
-- Available to STUDENT and TEACHER roles (for their own requests)
+Cancel a `PENDING` request or remove a `REJECTED` request from the user's history.
 
-- **Response:** 204 No Content
-- **Errors:**
-  - 404 RESOURCE_NOT_FOUND (request not found or not owned by user)
-  - 403 ACCESS_DENIED (not allowed to delete)
-  - 401 UNAUTHENTICATED
+- **Authorization:** Returns `404 RESOURCE_NOT_FOUND` if the request does not belong to the user (security through obscurity).
+- **Constraints:** `ACCEPTED` requests cannot be deleted (they must be revoked by an Admin or the paper must be archived).
+- **Response:** `204 No Content`
 
 ---
 
@@ -578,27 +597,26 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 ### GET /api/admin/requests
 
-Retrieve a paginated list of document access requests relevant to admin roles.
+Retrieve a paginated and filterable list of document access requests.
 
 - **Authentication:** JWT required.
-  - Role required: `DEPARTMENT_ADMIN` (restricted), or `SUPER_ADMIN` (global).
-- **Endpoint:** `GET /api/admin/requests`
-- **Query Parameters:**
+- **Roles:** `DEPARTMENT_ADMIN` (restricted to own department) or `SUPER_ADMIN` (global access).
 
-  | Parameter      | Type   | Required | Description                                                                                       |
-  | -------------- | ------ | -------- | ------------------------------------------------------------------------------------------------- |
-  | `departmentId` | string | No       | Filter by department. **Allowed only for SUPER_ADMIN**. DEPARTMENT_ADMIN may NOT set this param.  |
-  | `status`       | string | No       | Filter by request status: one or more of `PENDING`, `ACCEPTED`, `REJECTED` (comma-separated list) |
-  | `page`         | number | No       | Zero-indexed page number (default: 0)                                                             |
-  | `size`         | number | No       | Results per page (default: 20, max: 100)                                                          |
-  | `sortBy`       | string | No       | Field to sort by: `createdAt` (default), `status`, `paper.title`, `userId`                        |
-  | `sortOrder`    | string | No       | Sort direction: `desc` (default), `asc`                                                           |
+**Request Query Parameters**
 
-- **Authorization Rules:**
-  - **DEPARTMENT_ADMIN:** Always scoped implicitly to their assigned department, ignores/forbids `departmentId` parameter
-  - **SUPER_ADMIN:** May filter by any department via `departmentId`, or view all by omitting
+| Parameter      | Type   | Required | Description                                                                                                        |
+| -------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `page`         | number | No       | Zero-indexed page number (default: 0).                                                                             |
+| `size`         | number | No       | Results per page (default: 20, max: 100).                                                                          |
+| `search`       | string | No       | Case-insensitive partial match against `user.fullName`, `user.email`, or `paper.title`.                            |
+| `status`       | string | No       | Filter by status: `PENDING`, `ACCEPTED`, or `REJECTED`. Supports comma-separated lists (e.g., `PENDING,ACCEPTED`). |
+| `departmentId` | string | No       | **SUPER_ADMIN only.** Filter by specific department ID. Must be rejected with 400 for `DEPARTMENT_ADMIN`.          |
+| `sortBy`       | string | No       | Sort field: `createdAt` (default), `status`, `paper.title`, or `user.fullName`.                                    |
+| `sortOrder`    | string | No       | Sort direction: `desc` (default) or `asc`.                                                                         |
 
-- **Response:** Paginated list of requests in the following structure:
+**Response Body (200 OK)**
+
+The response uses the canonical pagination format with fully expanded user and paper objects to prevent secondary API round-trips.
 
 ```json
 {
@@ -610,15 +628,15 @@ Retrieve a paginated list of document access requests relevant to admin roles.
       "updatedAt": "2024-06-01T12:00:00Z",
       "user": {
         "userId": 100,
-        "email": "bob@acdeducation.com",
-        "fullName": "Bob Example",
+        "email": "student@acdeducation.com",
+        "fullName": "Jane Doe",
         "role": "STUDENT"
       },
       "paper": {
         "paperId": 123,
-        "title": "Machine Learning in Healthcare",
-        "authorName": "Jane Smith",
-        "abstractText": "...",
+        "title": "Neural Network Efficiency",
+        "authorName": "Dr. Smith",
+        "abstractText": "This paper discusses...",
         "department": {
           "departmentId": 1,
           "departmentName": "Computer Science"
@@ -631,50 +649,27 @@ Retrieve a paginated list of document access requests relevant to admin roles.
     }
     // ... more requests
   ],
-  "totalElements": 45,
-  "totalPages": 3,
+  "totalElements": 1,
+  "totalPages": 1,
   "number": 0,
   "size": 20
 }
 ```
 
-- Each request **MUST** include fully expanded `user` and `paper` objects.
-- `department` is always nested inside `paper`.
+**Authorization & Security Rules**
 
-- **Allowed Status Transitions:**
-  - Only `PENDING` requests may be set to `ACCEPTED` or `REJECTED` via the admin action endpoint.
-  - Terminal states (`ACCEPTED`, `REJECTED`) are immutable via this endpoint.
+- **Department Scoping:** `DEPARTMENT_ADMIN` access is strictly scoped to their assigned department. The backend must automatically append `WHERE paper.department_id = user.department_id` to the query.
+- **Information Concealment:** Attempts by a `DEPARTMENT_ADMIN` to query or search for requests outside their department must return `403 ACCESS_DENIED`.
+- **Status Transitions:** Only `PENDING` requests may be modified. `ACCEPTED` and `REJECTED` are terminal states.
 
-- **Security and Filtering:**
-  - DEPARTMENT_ADMIN can only see/access requests for their department—any attempt to view or act on others is 403.
-  - SUPER_ADMIN can filter all.
+**Error Codes**
 
-- **Common Use-Cases:**
-  - Review all pending requests in department(s)
-  - Filter by status and sort by time
-  - See student/teacher submitters and associated paper context in one call
-
-- **Error Codes:**
-
-  | Condition                                                 | HTTP | Code               | Message                                                           | Notes                                                |
-  | --------------------------------------------------------- | ---- | ------------------ | ----------------------------------------------------------------- | ---------------------------------------------------- |
-  | Missing/Invalid JWT                                       | 401  | UNAUTHENTICATED    | "Authentication required"                                         | Always returned for missing/invalid token            |
-  | Insufficient privileges / cross-department access attempt | 403  | ACCESS_DENIED      | "You do not have permission to view requests for this department" | Frontier must not allow users to craft broader query |
-  | Invalid query (malformed param, illegal status, etc.)     | 400  | INVALID_REQUEST    | "Invalid query parameter: ..."                                    | Details in `details` array                           |
-  | Nonexistent department ID supplied by SUPER_ADMIN         | 404  | RESOURCE_NOT_FOUND | "Department not found"                                            | DepartmentId must exist                              |
-  | DEPARTMENT_ADMIN attempts to specify `departmentId` param | 400  | INVALID_REQUEST    | "departmentId filter not permitted for your role"                 | Reject, do not ignore silently                       |
-
-- **Notes:**
-  - Pagination follows the canonical response format used throughout the API.
-  - All sort and filter fields are validated; unrecognized or illegal values return 400 with meaningful error codes.
-  - Embedded object shape is stable and UI-ready; no IDs-only “raw” responses.
-  - All date/timestamps are ISO 8601 UTC.
-
----
-
-The current "Admin Papers" section is indeed sparse compared to the rest of your spec. To maintain consistency with the "Admin Requests" section, we need to define the exact request/response shapes, authorization logic, and error codes.
-
-Per your request, I have added the **GET /api/admin/papers/{id}** endpoint and detailed the CRUD operations.
+| Condition                            | HTTP | Code              | Message                                                            |
+| ------------------------------------ | ---- | ----------------- | ------------------------------------------------------------------ |
+| Missing/Invalid JWT                  | 401  | `UNAUTHENTICATED` | "Authentication required".                                         |
+| Cross-department access              | 403  | `ACCESS_DENIED`   | "You do not have permission to view requests for this department". |
+| Admin attempts `departmentId` filter | 400  | `INVALID_REQUEST` | "departmentId filter not permitted for your role".                 |
+| Invalid status value                 | 400  | `INVALID_REQUEST` | "Invalid status. Must be PENDING, ACCEPTED, or REJECTED".          |
 
 ---
 
@@ -682,15 +677,61 @@ Per your request, I have added the **GET /api/admin/papers/{id}** endpoint and d
 
 ### GET /api/admin/papers
 
-Retrieve a paginated list of all research papers. Unlike the public library, this view includes archived papers and is used for the Admin Dashboard.
+Retrieve a paginated list of all research papers for administrative management. This view includes archived papers and enforces strict department-level isolation for `DEPARTMENT_ADMIN` roles.
 
 - **Authentication:** JWT Required (`DEPARTMENT_ADMIN` or `SUPER_ADMIN`)
-- **Query Parameters:** Same as `/api/papers` (page, size, search, sortBy, sortOrder).
 - **Authorization Scoping:**
-- **DEPARTMENT_ADMIN:** Backend automatically appends `WHERE department_id = user.dept_id`.
-- **SUPER_ADMIN:** Global access.
+- **DEPARTMENT_ADMIN:** Backend strictly enforces `WHERE department_id = user.dept_id`. Attempts to bypass this via query parameters must be ignored or rejected.
+- **SUPER_ADMIN:** Full global access.
 
-- **Response Body:** [Canonical Pagination Response](#conventions) containing `ResearchPaper[]`.
+**Query Parameters:**
+
+| Parameter   | Type    | Required | Description                                                        |
+| ----------- | ------- | -------- | ------------------------------------------------------------------ |
+| `page`      | number  | No       | Zero-indexed page number (default: 0).                             |
+| `size`      | number  | No       | Results per page (default: 20, max: 100).                          |
+| `search`    | string  | No       | Full-text search across `title`, `authorName`, and `abstractText`. |
+| `archived`  | boolean | No       | Filter by archived status (true/false). If omitted, returns both.  |
+| `sortBy`    | string  | No       | `submissionDate` (default), `title`, `authorName`.                 |
+| `sortOrder` | string  | No       | `desc` (default), `asc`.                                           |
+
+**Request Example:**
+`GET /api/admin/papers?page=0&size=10&search=Quantum&archived=false&sortBy=title&sortOrder=asc`
+
+**Response Body (200 OK):**
+
+```json
+{
+  "content": [
+    {
+      "paperId": 123,
+      "title": "Quantum Computing Trends",
+      "authorName": "Dr. Aris Thorne",
+      "abstractText": "Detailed exploration of qubits and error correction...",
+      "department": {
+        "departmentId": 1,
+        "departmentName": "Computer Science"
+      },
+      "submissionDate": "2025-12-01",
+      "filePath": "2025/dept_1/paper_123.pdf",
+      "archived": false,
+      "archivedAt": null
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "number": 0,
+  "size": 10
+}
+```
+
+**Error Codes:**
+
+| Condition               | HTTP | Code              | Message                     |
+| ----------------------- | ---- | ----------------- | --------------------------- |
+| Missing/Invalid JWT     | 401  | `UNAUTHENTICATED` | "Authentication required"   |
+| Non-admin role          | 403  | `ACCESS_DENIED`   | "Admin privileges required" |
+| Invalid pagination/sort | 400  | `INVALID_REQUEST` | "Invalid query parameters"  |
 
 ---
 
