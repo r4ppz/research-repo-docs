@@ -671,6 +671,159 @@ The response uses the canonical pagination format with fully expanded user and p
 | Admin attempts `departmentId` filter | 400  | `INVALID_REQUEST` | "departmentId filter not permitted for your role".                 |
 | Invalid status value                 | 400  | `INVALID_REQUEST` | "Invalid status. Must be PENDING, ACCEPTED, or REJECTED".          |
 
+### PUT /api/admin/requests/{requestId}/accept
+
+Approve a pending document access request. Sets the status from `PENDING` to `ACCEPTED`. Only `DEPARTMENT_ADMIN` (for their department) or `SUPER_ADMIN` can perform this operation.
+
+- **Authentication:** JWT required.
+- **Authorization:**
+  - `DEPARTMENT_ADMIN` may only approve requests for papers within their assigned department.
+  - `SUPER_ADMIN` may approve any request.
+
+- **Path Parameter:**
+  - `requestId` (integer, required): ID of the document request.
+
+- **Request Body:**
+
+  ```json
+  {}
+  ```
+
+  _(Empty body. All necessary info is in the path and user context.)_
+
+- **Business Rules:**
+  - Only requests with `status: "PENDING"` can be approved.
+  - Approving sets the request's status to `ACCEPTED` and updates `updatedAt`.
+  - Cannot approve requests outside the admin’s department (`DEPARTMENT_ADMIN`).
+  - Cannot approve requests for archived papers (should not be possible via normal UI, enforced for safety).
+  - Side effect: Grants user access to download/view the corresponding paper.
+
+- **Response (200 OK):**
+
+  ```json
+  {
+    "requestId": 42,
+    "status": "ACCEPTED",
+    "createdAt": "2024-06-01T12:00:00Z",
+    "updatedAt": "2024-06-02T14:00:00Z",
+    "user": {
+      "userId": 100,
+      "email": "student@acdeducation.com",
+      "fullName": "Jane Doe",
+      "role": "STUDENT"
+    },
+    "paper": {
+      "paperId": 123,
+      "title": "Neural Network Efficiency",
+      "authorName": "Dr. Smith",
+      "abstractText": "This paper discusses...",
+      "department": {
+        "departmentId": 1,
+        "departmentName": "Computer Science"
+      },
+      "submissionDate": "2023-09-15",
+      "filePath": "2023/dept_cs/paper_123.pdf",
+      "archived": false,
+      "archivedAt": null
+    }
+  }
+  ```
+
+- **Error Codes:**
+
+| Condition                             | HTTP | Code                    | Message                                                               |
+| ------------------------------------- | ---- | ----------------------- | --------------------------------------------------------------------- |
+| Request does not exist                | 404  | `RESOURCE_NOT_FOUND`    | "Request not found"                                                   |
+| Request not `PENDING`                 | 409  | `REQUEST_ALREADY_FINAL` | "Request is already in a terminal state"                              |
+| Not authorized for this department    | 403  | `ACCESS_DENIED`         | "You do not have permission to approve requests for this department." |
+| Missing/invalid JWT                   | 401  | `UNAUTHENTICATED`       | "Authentication required."                                            |
+| Non-admin role                        | 403  | `ACCESS_DENIED`         | "Admin privileges required."                                          |
+| Request for archived or missing paper | 404  | `RESOURCE_NOT_FOUND`    | "Paper not found"                                                     |
+
+- **Notes:**
+  - Status transition is idempotent. If called on a request already in terminal state (`ACCEPTED`, `REJECTED`), an error is returned.
+  - All state transitions are audit-logged (timestamp, admin user, old/new status).
+
+---
+
+### PUT /api/admin/requests/{requestId}/reject
+
+Reject a pending document access request. Sets the status from `PENDING` to `REJECTED`. Only `DEPARTMENT_ADMIN` (for their department) or `SUPER_ADMIN` can perform this operation.
+
+- **Authentication:** JWT required.
+- **Authorization:**
+  - `DEPARTMENT_ADMIN` may only reject requests for papers within their assigned department.
+  - `SUPER_ADMIN` may reject any request.
+
+- **Path Parameter:**
+  - `requestId` (integer, required): ID of the document request.
+
+- **Request Body:**
+
+  ```json
+  {
+    "reason": "Insufficient justification" // (Optional, string, max 255 chars)
+  }
+  ```
+
+  _(Optional: `reason` may be omitted; if provided, it will be recorded and returned in the response)_
+
+- **Business Rules:**
+  - Only requests with `status: "PENDING"` can be rejected.
+  - Rejecting sets the request's status to `REJECTED`, updates `updatedAt`, and stores an optional rejection reason.
+  - Cannot reject requests outside the admin’s department (`DEPARTMENT_ADMIN`).
+  - Cannot reject requests for archived papers.
+  - Once rejected, the user loses eligibility to download/view the full document.
+
+- **Response (200 OK):**
+
+  ```json
+  {
+    "requestId": 42,
+    "status": "REJECTED",
+    "reason": "Insufficient justification",
+    "createdAt": "2024-06-01T12:00:00Z",
+    "updatedAt": "2024-06-02T14:30:00Z",
+    "user": {
+      "userId": 100,
+      "email": "student@acdeducation.com",
+      "fullName": "Jane Doe",
+      "role": "STUDENT"
+    },
+    "paper": {
+      "paperId": 123,
+      "title": "Neural Network Efficiency",
+      "authorName": "Dr. Smith",
+      "abstractText": "This paper discusses...",
+      "department": {
+        "departmentId": 1,
+        "departmentName": "Computer Science"
+      },
+      "submissionDate": "2023-09-15",
+      "filePath": "2023/dept_cs/paper_123.pdf",
+      "archived": false,
+      "archivedAt": null
+    }
+  }
+  ```
+
+- **Error Codes:**
+
+| Condition                             | HTTP | Code                    | Message                                                              |
+| ------------------------------------- | ---- | ----------------------- | -------------------------------------------------------------------- |
+| Request does not exist                | 404  | `RESOURCE_NOT_FOUND`    | "Request not found"                                                  |
+| Request not `PENDING`                 | 409  | `REQUEST_ALREADY_FINAL` | "Request is already in a terminal state"                             |
+| Not authorized for this department    | 403  | `ACCESS_DENIED`         | "You do not have permission to reject requests for this department." |
+| Missing/invalid JWT                   | 401  | `UNAUTHENTICATED`       | "Authentication required."                                           |
+| Non-admin role                        | 403  | `ACCESS_DENIED`         | "Admin privileges required."                                         |
+| Request for archived or missing paper | 404  | `RESOURCE_NOT_FOUND`    | "Paper not found"                                                    |
+| Reason exceeds max length             | 400  | `VALIDATION_ERROR`      | "Reason must be at most 255 characters."                             |
+
+- **Notes:**
+  - The `reason` field is optional, max 255 chars, stored in the backend if provided, and included in rejection notification to the user.
+  - If status transition is attempted on a request already in terminal state (`ACCEPTED`, `REJECTED`), error `409 REQUEST_ALREADY_FINAL` is returned.
+  - All state transitions are audit-logged (timestamp, admin user, old/new status, and rejection reason).
+
 ---
 
 ## Admin Papers (CRUD)

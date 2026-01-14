@@ -16,7 +16,7 @@
   - [Error & Validation Conventions](#error-validation-conventions)
   <!--toc:end-->
 
-This spec is intentionally blunt and detailed. It is the **single source of truth** for backend and frontend data design, API contracts, and authorization logic. All changes must be documented here first, then implemented.
+This spec is intentionally detailed. It is the **single source of truth** for backend and frontend data design, API contracts, and authorization logic. All changes must be documented here first, then implemented.
 
 ---
 

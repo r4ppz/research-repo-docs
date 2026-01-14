@@ -61,6 +61,7 @@ CREATE TABLE document_requests (
     paper_id INT NOT NULL REFERENCES research_papers(paper_id) ON DELETE CASCADE,
     request_date TIMESTAMP NOT NULL DEFAULT now(),
     status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    rejection_reason VARCHAR(255) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
