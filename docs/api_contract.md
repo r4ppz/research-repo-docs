@@ -29,6 +29,8 @@
     - [DELETE /api/requests/{requestId}](#delete-apirequestsrequestid)
   - [Admin Requests](#admin-requests)
     - [GET /api/admin/requests](#get-apiadminrequests)
+    - [PUT /api/admin/requests/{requestId}/accept](#put-apiadminrequestsrequestidaccept)
+    - [PUT /api/admin/requests/{requestId}/reject](#put-apiadminrequestsrequestidreject)
   - [Admin Papers (CRUD)](#admin-papers-crud)
     - [GET /api/admin/papers](#get-apiadminpapers)
     - [GET /api/admin/papers/{id}](#get-apiadminpapersid)
