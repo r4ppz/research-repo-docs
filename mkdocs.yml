@@ -1,0 +1,15 @@
+site_name: "Research Repository Documentation"
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: teal
+  features:
+    - search.highlight
+    - navigation.sections
+
+nav:
+  - Home: index.md
+  - API Contract: api_contract.md
+  - Database: database_migration.md
+  - Specification: research_repo_spec.md

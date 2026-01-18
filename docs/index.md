@@ -8,8 +8,8 @@
 
 | Document                                                            |
 | ------------------------------------------------------------------- |
-| [Research Repository Specification](./docs/research_repo_spec.md)   |
-| [API Contract](./docs/api_contract.md)                              |
+| [Research Repository Specification](./research_repo_spec.md)        |
+| [API Contract](./api_contract.md)                                   |
 | [Frontend Repository](https://github.com/r4ppz/research-repository) |
 
 ---
