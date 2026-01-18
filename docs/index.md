@@ -18,7 +18,7 @@ Navigate through the primary technical tracks below.
 
 ---
 
-## 🛠 Project Status
+## Project Status
 
 - **Phase:** Alpha
 - **Maintenance:** Intermittent (developed during free time).
