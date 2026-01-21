@@ -871,17 +871,21 @@ Retrieve a paginated list of all research papers for administrative management. 
 
 **Query Parameters:**
 
-| Parameter   | Type    | Required | Description                                                        |
-| ----------- | ------- | -------- | ------------------------------------------------------------------ |
-| `page`      | number  | No       | Zero-indexed page number (default: 0).                             |
-| `size`      | number  | No       | Results per page (default: 20, max: 100).                          |
-| `search`    | string  | No       | Full-text search across `title`, `authorName`, and `abstractText`. |
-| `archived`  | boolean | No       | Filter by archived status (true/false). If omitted, returns both.  |
-| `sortBy`    | string  | No       | `submissionDate` (default), `title`, `authorName`.                 |
-| `sortOrder` | string  | No       | `desc` (default), `asc`.                                           |
+| Parameter      | Type    | Required | Description                                                                                                |
+| -------------- | ------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `page`         | number  | No       | Zero-indexed page number (default: 0).                                                                     |
+| `size`         | number  | No       | Results per page (default: 20, max: 100).                                                                  |
+| `search`       | string  | No       | Full-text search across `title`, `authorName`, and `abstractText`.                                         |
+| `departmentId` | string  | No       | Comma-separated list of department IDs (multiselect). **SUPER_ADMIN only** — ignored for DEPARTMENT_ADMIN. |
+| `year`         | string  | No       | Comma-separated list of submission years (multiselect).                                                    |
+| `archived`     | boolean | No       | Filter by archived status (true/false). If omitted, returns both.                                          |
+| `sortBy`       | string  | No       | `submissionDate` (default), `title`, `authorName`.                                                         |
+| `sortOrder`    | string  | No       | `desc` (default), `asc`.                                                                                   |
+
+**Note:** The `departmentId` parameter is only effective for `SUPER_ADMIN`. For `DEPARTMENT_ADMIN`, this parameter is ignored and results are always scoped to their assigned department.
 
 **Request Example:**
-`GET /api/admin/papers?page=0&size=10&search=Quantum&archived=false&sortBy=title&sortOrder=asc`
+`GET /api/admin/papers?page=0&size=10&search=Quantum&departmentId=1,2&year=2024,2025&archived=false&sortBy=title&sortOrder=asc`
 
 **Response Body (200 OK):**
 
@@ -1048,15 +1052,46 @@ Permanently delete a paper and its associated file.
 
 ### GET /api/files/{fileId}
 
-- JWT required
-- Constructs the file path from the paper's filePath field in the database
-- Authorization matrix:
-  - SUPER_ADMIN → always
-  - DEPARTMENT_ADMIN → allowed if paper in department
-  - STUDENT → allowed only if ACCEPTED request and paper not archived
-  - TEACHER → allowed only if ACCEPTED request and paper not archived
+Download or view a research paper file.
 
-- Returns binary, 403 or 404 otherwise (see endpoint-specific error codes)
+- **Authentication:** JWT required
+- **Path Parameter:** `fileId` (number) — Paper ID (used to look up the `filePath` from the database)
+
+**Query Parameters:**
+
+| Parameter | Type    | Required | Description                                                        |
+| --------- | ------- | -------- | ------------------------------------------------------------------ |
+| `view`    | boolean | No       | If `true`, opens in browser (inline). Default: `false` (download). |
+
+**Authorization Matrix:**
+
+| Role             | Access Rule                                                    |
+| ---------------- | -------------------------------------------------------------- |
+| SUPER_ADMIN      | Always allowed                                                 |
+| DEPARTMENT_ADMIN | Allowed only if paper belongs to their department              |
+| TEACHER          | Allowed only if has ACCEPTED request AND paper is not archived |
+| STUDENT          | Allowed only if has ACCEPTED request AND paper is not archived |
+
+**Response Headers:**
+
+| Header                | Value                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `Content-Type`        | Based on file type: `application/pdf` or `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
+| `Content-Disposition` | `view=true`: `inline; filename="<filename>"` / `view=false` or omitted: `attachment; filename="<filename>"`        |
+
+**Response (200 OK):** Binary file content
+
+**Error Codes:**
+
+| Condition                             | HTTP | Code                 | Message                                              |
+| ------------------------------------- | ---- | -------------------- | ---------------------------------------------------- |
+| Missing/Invalid JWT                   | 401  | `UNAUTHENTICATED`    | "Authentication required"                            |
+| Paper not found                       | 404  | `RESOURCE_NOT_FOUND` | "Paper not found"                                    |
+| File missing from storage             | 404  | `FILE_NOT_FOUND`     | "File not found"                                     |
+| No approved request (Student/Teacher) | 403  | `ACCESS_DENIED`      | "You do not have access to this file"                |
+| Paper archived (Student/Teacher)      | 403  | `ACCESS_DENIED`      | "This paper is archived"                             |
+| Wrong department (DEPARTMENT_ADMIN)   | 403  | `ACCESS_DENIED`      | "You do not have access to files in this department" |
+| File read/storage error               | 500  | `FILE_STORAGE_ERROR` | "Unable to retrieve file"                            |
 
 ---
 
