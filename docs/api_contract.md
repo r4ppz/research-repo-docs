@@ -200,7 +200,8 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
         "email": "alice@acdeducation.com",
         "fullName": "Alice Student",
         "role": "STUDENT",
-        "department": null
+        "department": null,
+        "profilePictureUrl": "https://lh3.googleusercontent.com/a/default-user=s96-c"
       }
     }
     ```
@@ -286,9 +287,35 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 ### GET /api/users/me
 
-- Requires JWT
-- Returns User object
-- **401 UNAUTHENTICATED** if no JWT
+- **Authentication:** JWT required
+- **Authorization:** All authenticated users
+- **Returns:** Current user object with profile details
+- **403 ACCESS_DENIED** if user lacks required permissions
+- **401 UNAUTHENTICATED** if no JWT or token is invalid
+
+**Response (200 OK):**
+
+```json
+{
+  "userId": 1,
+  "email": "alice@acdeducation.com",
+  "fullName": "Alice Student",
+  "role": "STUDENT",
+  "department": null,
+  "profilePictureUrl": "https://lh3.googleusercontent.com/a/default-user=s96-c"
+}
+```
+
+**Field Descriptions:**
+
+| Field               | Type   | Description                                                        |
+| ------------------- | ------ | ------------------------------------------------------------------ |
+| `userId`            | number | Unique identifier for the user                                     |
+| `email`             | string | User's email (verified by Google SSO)                              |
+| `fullName`          | string | User's full name from Google profile                               |
+| `role`              | string | User role: `STUDENT`, `TEACHER`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN` |
+| `department`        | object | Department info (only for `DEPARTMENT_ADMIN`, otherwise null)      |
+| `profilePictureUrl` | string | Google profile picture URL (nullable, may be null)                 |
 
 ---
 
@@ -750,7 +777,7 @@ Approve a pending document access request. Sets the status from `PENDING` to `AC
 
 ### PUT /api/admin/requests/{requestId}/reject
 
-Reject a pending document access request. Sets the status from `PENDING` to `REJECTED`. Only `DEPARTMENT_ADMIN` (for their department) or `SUPER_ADMIN` can perform this operation.
+Reject a document access request or revoke previously granted access. Sets the status from `PENDING` or `ACCEPTED` to `REJECTED`. Only `DEPARTMENT_ADMIN` (for their department) or `SUPER_ADMIN` can perform this operation.
 
 - **Authentication:** JWT required.
 - **Authorization:**
@@ -771,9 +798,10 @@ Reject a pending document access request. Sets the status from `PENDING` to `REJ
   _(Optional: `reason` may be omitted; if provided, it will be recorded and returned in the response)_
 
 - **Business Rules:**
-  - Only requests with `status: "PENDING"` can be rejected.
+  - Requests with `status: "PENDING"` or `status: "ACCEPTED"` can be rejected (revocation allowed).
+  - Requests already in `status: "REJECTED"` cannot be rejected again (terminal state).
   - Rejecting sets the request's status to `REJECTED`, updates `updatedAt`, and stores an optional rejection reason.
-  - Cannot reject requests outside the admin’s department (`DEPARTMENT_ADMIN`).
+  - Cannot reject requests outside the admin's department (`DEPARTMENT_ADMIN`).
   - Cannot reject requests for archived papers.
   - Once rejected, the user loses eligibility to download/view the full document.
 
@@ -814,7 +842,7 @@ Reject a pending document access request. Sets the status from `PENDING` to `REJ
 | Condition                             | HTTP | Code                    | Message                                                              |
 | ------------------------------------- | ---- | ----------------------- | -------------------------------------------------------------------- |
 | Request does not exist                | 404  | `RESOURCE_NOT_FOUND`    | "Request not found"                                                  |
-| Request not `PENDING`                 | 409  | `REQUEST_ALREADY_FINAL` | "Request is already in a terminal state"                             |
+| Request already `REJECTED`            | 409  | `REQUEST_ALREADY_FINAL` | "Request is already in a terminal state"                             |
 | Not authorized for this department    | 403  | `ACCESS_DENIED`         | "You do not have permission to reject requests for this department." |
 | Missing/invalid JWT                   | 401  | `UNAUTHENTICATED`       | "Authentication required."                                           |
 | Non-admin role                        | 403  | `ACCESS_DENIED`         | "Admin privileges required."                                         |
@@ -823,7 +851,9 @@ Reject a pending document access request. Sets the status from `PENDING` to `REJ
 
 - **Notes:**
   - The `reason` field is optional, max 255 chars, stored in the backend if provided, and included in rejection notification to the user.
-  - If status transition is attempted on a request already in terminal state (`ACCEPTED`, `REJECTED`), error `409 REQUEST_ALREADY_FINAL` is returned.
+  - Admins can reject PENDING requests (rejection) or ACCEPTED requests (revocation of previously granted access).
+  - REJECTED is a terminal state—requests already rejected cannot be rejected again.
+  - Users whose requests are rejected must create a new request to re-apply for access.
   - All state transitions are audit-logged (timestamp, admin user, old/new status, and rejection reason).
 
 ---
@@ -1061,4 +1091,4 @@ Permanently delete a paper and its associated file.
 ## State Machines
 
 **Paper. archived**: `false → true` via /archive; `true → false` via /unarchive
-**DocumentRequest.status**: `PENDING → ACCEPTED | REJECTED` (terminal)
+**DocumentRequest.status**: `PENDING → ACCEPTED | REJECTED`; `ACCEPTED → REJECTED` (revocation); `REJECTED` is terminal

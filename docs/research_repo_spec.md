@@ -140,8 +140,13 @@ For detailed API documentation including request/response schemas, error codes, 
   - Backend verifies the **Google ID token**:
     - Signature, Issuer, Audience, Expiry.
     - Domain enforced: must be `acdeducation.com`.
+    - Extracts user profile data: `email`, `name`, `picture` (from `profile` OAuth scope).
 
-  - On first login, a new user record is created with default role `STUDENT`.
+  - On first login, a new user record is created with:
+    - Default role: `STUDENT`
+    - Profile picture URL from Google (extracted from ID token claims)
+    - Profile picture is stored as a URL string (not binary) to minimize storage and leverage Google's CDN
+    - Picture URL remains available even if Google's original URL expires (stored as snapshot on login)
 
 - **Token Refresh Flow (Cookie-Based)**:
   - When access token expires, frontend calls `/api/auth/refresh`.

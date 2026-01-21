@@ -25,6 +25,7 @@ CREATE TABLE users (
     user_id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     full_name VARCHAR(255) NOT NULL,
+    profile_picture_url VARCHAR(500) NULL,
     role VARCHAR(50) NOT NULL DEFAULT 'STUDENT',
     department_id INT NULL REFERENCES departments(department_id) ON DELETE SET NULL,
     created_at TIMESTAMP NOT NULL DEFAULT now(),
