@@ -1,13 +1,17 @@
 # Research Repository
 
-The Research Repository is a gated academic research portal where students can browse paper metadata, request access to full documents, and administrators review and manage paper submissions and access requests.
+The Research Repository is a gated academic research portal where students can browse paper
+metadata, request access to full documents, and administrators review and manage paper submissions
+and access requests.
 
 Notes:
 
 - Frontend and documentation/specifications are open source — contributions are welcome.
-- Backend code is closed source. If you'd like to help maintain or contribute to backend work, please contact the maintainers.
+- Backend code is closed source. If you'd like to help maintain or contribute to backend work,
+  please contact the maintainers.
 
-> **Active development:** APIs and specs are unstable. Expect breaking changes during the Alpha phase. A stable version will be released once the system is sufficiently usable.
+> **Active development:** APIs and specs are unstable. Expect breaking changes during the Alpha
+> phase. A stable version will be released once the system is sufficiently usable.
 
 ---
 
