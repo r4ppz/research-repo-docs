@@ -1,3 +1,5 @@
-# Research Repository — Documentation
+# Research Repository Documentation
 
-> **Status:** Still in development. Work in progress during free time.
+Documentation for the Research Repository project.
+
+For development/setup instructions, see [instruction.md](dev/instruction.md)

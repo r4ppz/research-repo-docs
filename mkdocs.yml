@@ -2,11 +2,14 @@ site_name: "Research Repository Documentation"
 theme:
   name: material
   palette:
-    scheme: slate
-    primary: teal
+    scheme: blue
+    primary: sky-blue
   features:
     - search.highlight
     - navigation.sections
+
+extra:
+  generator: false
 
 nav:
   - Home: index.md
@@ -14,18 +17,4 @@ nav:
   - Database: database_migration.md
   - Specification: research_repo_spec.md
 
-markdown_extensions:
-  - tables
-  - admonition
-  - attr_list
-  - md_in_html
-  - pymdownx.superfences
-  - pymdownx.highlight:
-      anchor_linenums: true
-      line_spans: __span
-      pygments_lang_class: true
-  - pymdownx.inlinehilite
-  - pymdownx.tasklist:
-      custom_checkbox: true
-  - pymdownx.tabbed:
-      alternate_style: true
+markdown_extensions: []
