@@ -6,7 +6,7 @@ and access requests.
 
 Notes:
 
-- Frontend and documentation/specifications are open source — contributions are welcome.
+- [Frontend](https://github.com/r4ppz/research-repository) and [documentation/specifications](https://github.com/r4ppz/research-repo-docs) are open source — contributions are welcome.
 - Backend code is closed source. If you'd like to help maintain or contribute to backend work,
   please contact the maintainers.
 

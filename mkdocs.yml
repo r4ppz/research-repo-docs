@@ -1,12 +1,36 @@
 site_name: "Research Repository Documentation"
+
+repo_url: https://github.com/r4ppz/research-repo-docs
+
 theme:
   name: material
+  language: en
+
   palette:
-    scheme: blue
-    primary: sky-blue
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: sky blue
+      accent: sky blue
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: sky blue
+      accent: sky blue
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+      icon:
+        repo: fontawesome/brands/github
+
   features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - search.suggest
     - search.highlight
-    - navigation.sections
+    - content.code.copy
 
 extra:
   generator: false
