@@ -13,6 +13,7 @@
     - [API Endpoints](#api-endpoints)
     - [AuthN/AuthZ](#authnauthz)
     - [Security](#security)
+    - [Data Privacy & Collection](#data-privacy-collection)
     - [Error & Validation Conventions](#error-validation-conventions)
         <!--toc:end-->
 
@@ -239,8 +240,10 @@ requirements, see the full [API Contract](/docs/api_contract.md).
       refresh token directly.
 
 - **Manual Role Assignment**:
-    - Teacher and admin emails are inserted manually via Flyway migration or backend seed script.
-    - Roles are `DEPARTMENT_ADMIN` (with department) or `SUPER_ADMIN` (no department).
+    - Roles for privileged users (Teacher and Admin) are managed via a static configuration file (`privileged-users.yaml`) on the backend server.
+    - When a user logs in via Google SSO, the system checks their email against this configuration to determine their role and assigned department (if applicable).
+    - If the email is not found in the configuration, the user is assigned the default `STUDENT` role.
+    - Any changes to privileged roles require updating this configuration file and may require a service restart or a fresh login by the user.
 
 - **Access Token Structure (JWT)**:
     - **Claims**: `sub` (userId), `email`, `fullName`, `role`, `departmentId`, `iat`, `exp`, `iss`.
@@ -274,6 +277,15 @@ requirements, see the full [API Contract](/docs/api_contract.md).
 - **File validation**: MIME + size limits (20MB).
 - **Logging**: Audit decisions including token refresh attempts.
 - **Refresh token rotation**: New token issued on every use; old token invalidated.
+
+## Data Privacy & Collection
+
+The system is designed with a "minimal data" approach to prioritize security and user privacy:
+
+- **Authentication:** Handled entirely via Google OAuth 2.0. The system **never** sees or stores user passwords.
+- **Identity:** We store only the user's Full Name, school email (`@acdeducation.com`), and Google profile picture URL.
+- **Academic Data:** Research metadata (Title, Author, Abstract, Department) and the uploaded PDF/DOCX files.
+- **Project Phase:** During this **Alpha** stage, data is for development purposes. Users should maintain original copies of all documents as data persistence is not yet guaranteed.
 
 ## Error & Validation Conventions
 

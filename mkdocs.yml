@@ -37,8 +37,8 @@ extra:
 
 nav:
   - Home: index.md
+  - Specification: specification.md
   - API Contract: api_contract.md
   - Database: database_migration.md
-  - Specification: specification.md
 
 markdown_extensions: []

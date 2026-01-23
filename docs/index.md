@@ -38,3 +38,9 @@ Navigate the main technical tracks below.
 - Prefer small, focused pull requests that update docs and code together when applicable.
 
 Contact the maintainers via the repository issues.
+
+---
+
+## Branding and Intellectual Property
+
+The school's name, logo, and all research papers hosted within this system are the property of the school. The MIT License applies strictly to the source code and documentation. Use of the school's branding outside of this project is not permitted without explicit authorization.
