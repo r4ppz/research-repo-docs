@@ -41,4 +41,11 @@ nav:
   - API Contract: api_contract.md
   - Database: database_migration.md
 
-markdown_extensions: []
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
