@@ -1,22 +1,5 @@
 # Research Repository — Architecture & Implementation Spec
 
-<!--toc:start-->
-
-- [Research Repository — Architecture & Implementation Spec](#research-repository-architecture-implementation-spec)
-    - [High-level Summary](#high-level-summary)
-    - [Tech Stack](#tech-stack)
-    - [Roles & Capabilities](#roles-capabilities)
-        - [Page Access](#page-access)
-    - [Frontend Considerations](#frontend-considerations)
-    - [File Storage Strategy](#file-storage-strategy)
-    - [Database Schema](#database-schema)
-    - [API Endpoints](#api-endpoints)
-    - [AuthN/AuthZ](#authnauthz)
-    - [Security](#security)
-    - [Data Privacy & Collection](#data-privacy-collection)
-    - [Error & Validation Conventions](#error-validation-conventions)
-        <!--toc:end-->
-
 This spec is intentionally detailed. It is the **single source of truth** for backend and frontend
 data design, API contracts, and authorization logic. All changes must be documented here first, then
 implemented.
