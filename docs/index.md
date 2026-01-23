@@ -4,8 +4,6 @@ The Research Repository is a gated academic research portal where students can b
 metadata, request access to full documents, and administrators review and manage paper submissions
 and access requests.
 
-Notes:
-
 - [Frontend](https://github.com/r4ppz/research-repository) and [documentation/specifications](https://github.com/r4ppz/research-repo-docs) are open source — contributions are welcome.
 - Backend code is closed source. If you'd like to help maintain or contribute to backend work,
   please contact the maintainers.
@@ -21,7 +19,7 @@ Navigate the main technical tracks below.
 
 | Section          | Description                                  | Key Resource                                                    |
 | ---------------- | -------------------------------------------- | --------------------------------------------------------------- |
-| **Architecture** | High-level system design and logic.          | [View Specification](./research_repo_spec.md)                   |
+| **Architecture** | High-level system design and logic.          | [View Specification](./specification.md)                        |
 | **Integration**  | Requests, responses, and endpoint schema.    | [API Contract](./api_contract.md)                               |
 | **Client-Side**  | Implementation details for the React/Web UI. | [Frontend Source](https://github.com/r4ppz/research-repository) |
 

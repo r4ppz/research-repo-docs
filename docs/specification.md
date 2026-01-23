@@ -4,17 +4,17 @@
 
 - [Research Repository — Architecture & Implementation Spec](#research-repository-architecture-implementation-spec)
     - [High-level Summary](#high-level-summary)
+    - [Tech Stack](#tech-stack)
     - [Roles & Capabilities](#roles-capabilities)
         - [Page Access](#page-access)
     - [Frontend Considerations](#frontend-considerations)
-    - [Tech Stack](#tech-stack)
     - [File Storage Strategy](#file-storage-strategy)
     - [Database Schema](#database-schema)
     - [API Endpoints](#api-endpoints)
     - [AuthN/AuthZ](#authnauthz)
     - [Security](#security)
     - [Error & Validation Conventions](#error-validation-conventions)
-      <!--toc:end-->
+        <!--toc:end-->
 
 This spec is intentionally detailed. It is the **single source of truth** for backend and frontend
 data design, API contracts, and authorization logic. All changes must be documented here first, then
@@ -53,6 +53,58 @@ implemented.
 
 ---
 
+## Tech Stack
+
+**1. Backend**
+The backend is a RESTful API built with **Java 21** and the **Spring Boot** ecosystem.
+
+- **Core Framework:** Spring Boot 3.5.9
+- **Language:** Java 21
+- **Build Tool:** Maven (using `mvnw` wrapper)
+- **Database & Persistence:**
+    - **PostgreSQL:** Relational database for data storage.
+    - **Spring Data JPA (Hibernate):** Object-Relational Mapping (ORM).
+    - **Flyway:** Database version control and migration management (schema/data population).
+- **Security & Authentication:**
+    - **Spring Security:** For securing API endpoints.
+    - **OAuth2 Resource Server:** Integration for token-based security.
+    - **JWT (jjwt):** Custom implementation for JSON Web Token generation and validation.
+    - **Google API Client:** For Google OAuth2 integration.
+- **API Documentation:**
+    - **SpringDoc OpenAPI (Swagger UI):** Automated API documentation and interactive UI.
+- **Utilities & Quality:**
+    - **Lombok:** Reducing boilerplate code (annotations for getters, setters, builders, etc.).
+    - **Validation:** JSR-380 (Bean Validation) for request DTOs.
+- **Infrastructure:**
+    - **Docker:** Containerization via `Dockerfile` and `docker-compose.yml`.
+
+**Frontend**
+The frontend is a Single Page Application (SPA) built with **React** and **TypeScript**.
+
+- **Core Framework:** React 19 (with React compiler)
+- **Build Tool & Dev Server:** Vite 7
+- **Language:** TypeScript
+- **State Management & Data Fetching:**
+    - **TanStack Query (React Query) v5:** For server state management and caching.
+    - **Axios:** HTTP client for API communication.
+- **UI & Components:**
+    - **Radix UI:** Unstyled, accessible UI primitives (Dialog, Select, Tooltip).
+    - **TanStack Table v8:** Headless UI for building powerful tables and data grids.
+    - **Lucide React & React Icons:** Icon sets.
+    - **Clsx:** Utility for constructing conditional class names.
+- **Routing:**
+    - **React Router DOM v7:** Navigation and routing management.
+- **Styling:**
+    - **Pure CSS / CSS Modules:** Using `global.css`, `variables.css`, and `reset.css`.
+- **Tooling & Linting:**
+    - **ESLint v9:** For JavaScript/TypeScript linting.
+    - **Stylelint v16:** For CSS linting and formatting.
+    - **Prettier:** Code formatting.
+- **Deployment:**
+    - **gh-pages:** Used for deploying to GitHub Pages.
+
+---
+
 ## Roles & Capabilities
 
 | Role             | Department | Can View Metadata                               | Can Download/View PDF                           | Can CRUD Papers             | Can Approve/Reject Requests                 |
@@ -62,32 +114,27 @@ implemented.
 | DEPARTMENT_ADMIN | Required   | All papers, including archived, all departments | Full for their department                       | Full for their department   | Approve/reject requests in their department |
 | SUPER_ADMIN      | null       | All papers, including archived, all departments | Full across all departments                     | Full across all departments | Full across all departments                 |
 
-**Note:** This table describes homepage behavior (`/` route, `/api/papers` endpoint). For
-admin-specific pages and endpoints (`/api/admin/*`), DEPARTMENT_ADMIN operations are scoped to their
-assigned department only. See Admin Papers and Admin Requests sections in the API Contract for
-department-scoped behavior.
-
 ---
 
 ### Page Access
 
 - **STUDENT**
-    - `/` → Library (non-archived papers, all departments)
-    - `/student/requests` → Own requests
+    - LibraryPage (non-archived papers, all departments)
+    - RequestPage` → Own requests
 
 - **TEACHER**
-    - `/` → Library (all papers metadata, all departments)
-    - `/teacher/requests` → Own requests
+    - LibraryPage (all papers metadata, all departments)
+    - RequestPage → Own requests
 
 - **DEPARTMENT_ADMIN**
-    - `/` → Library (all papers metadata, all departments)
-    - `/department-admin/requests` → Request approvals (dept-scoped)
-    - `/department-admin/research` → Paper management (dept-scoped)
+    - LibraryPage (all papers metadata, all departments)
+    - RequestPage → Request approvals (dept-scoped)
+    - ResearchPage → Paper management (dept-scoped)
 
 - **SUPER_ADMIN**
-    - `/` → Library (all papers, all departments)
-    - `/super-admin/requests` → Request approvals (global)
-    - `/super-admin/research` → Paper management (global)
+    - LibraryPage (all papers, all departments)
+    - RequestPage → Request approvals (global)
+    - ResearchPage → Paper management (global)
 
 ---
 
@@ -104,22 +151,9 @@ department-scoped behavior.
 
 - Search and filtering capabilities:
     - Full-text search across paper title, author name, and abstract
-    - Multi-department filtering with comma-separated department IDs (e.g., "1,3,5")
-    - Year-based filtering for submission dates
+    - Multi-department filtering with comma-separated department IDs and years.
     - Sorting options: by submission date (default), title, or author name
     - Sort order: ascending or descending (descending is default)
-
----
-
-## Tech Stack
-
-- **Frontend:** Vite, React + TypeScript, React Router, Axios, CSS Modules
-- **Backend:** Java 21, Spring Boot 3, Spring Web, Security, Data JPA, Validation, Flyway,
-  PostgreSQL
-- JWT-based authentication
-- Google ID Token verification for SSO
-- springdoc-openapi for Swagger
-- Docker
 
 ---
 
@@ -146,7 +180,7 @@ department-scoped behavior.
 
 ## Database Schema
 
-For the full database migration, see the [Database Migration](/docs/database_migration.md).
+For the full database design and migration, see the [Database](/docs/database_migration.md).
 
 ---
 
@@ -190,6 +224,9 @@ requirements, see the full [API Contract](/docs/api_contract.md).
     - **Rotation:** Old refresh token is revoked; new refresh token is sent via a new `Set-Cookie`
       header.
     - New access token is returned in JSON body.
+    - **Note:** `/api/auth/refresh` is a public endpoint (no JWT required) but it does require the
+      `refreshToken` to be present in an `HttpOnly` cookie. Browsers attach the cookie automatically; the
+      frontend must never attempt to read or store the refresh token directly.
 
 - **Logout Flow**:
     - Frontend calls `/api/auth/logout`.
@@ -197,6 +234,9 @@ requirements, see the full [API Contract](/docs/api_contract.md).
     - Backend finds the token in the database and deletes it (server-side revocation).
     - Backend responds with a `Set-Cookie` header that overwrites the cookie with an immediate
       expiration (`Max-Age=0`), clearing it from the browser.
+    - **Note:** `/api/auth/logout` is also public (no JWT required) but requires the `refreshToken` cookie
+      to locate and revoke the token server-side. The frontend must never attempt to read or store the
+      refresh token directly.
 
 - **Manual Role Assignment**:
     - Teacher and admin emails are inserted manually via Flyway migration or backend seed script.
@@ -234,12 +274,6 @@ requirements, see the full [API Contract](/docs/api_contract.md).
 - **File validation**: MIME + size limits (20MB).
 - **Logging**: Audit decisions including token refresh attempts.
 - **Refresh token rotation**: New token issued on every use; old token invalidated.
-- **Refresh token reuse detection (MVP approach)**: For the MVP, reuse detection is simplified. If a
-  client attempts to use an already-revoked token, the server returns 401 Unauthorized. The client
-  then redirects to login. This reduces complexity while maintaining security against most basic
-  threats.
-
----
 
 ## Error & Validation Conventions
 

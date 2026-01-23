@@ -1,17 +1,22 @@
-### V1\_\_initial_schema.sql
+## Design choices:
+
+- No enum since its hard to map java to postgres enum, it is handle in app layer
+- No second auto update timestamp, handle in app layer
+- Email validation handle in app layer
+- Partial unique index in document_requests to prevent duplicate PENDING or ACCEPTED requests for same user/paper
+- Serial is old but okay, map easily in Java using integer
+
+### Note
+
+- Every design change (new, fix, or improvement) must be documented (WHY).
+- In prod, all schema changes must be versioned and applied via proper migration scripts.
+- In dev, complete schema rewrites are allowed temporarily.
+
+---
+
+## V1\_\_initial_schema.sql
 
 ```
--- Design choices:
--- No enum since its hard to map java to postgres enum, it is handle in app layer
--- No second auto update timestamp, handle in application layer
--- Partial unique index in document_requests to prevent duplicate PENDING or ACCEPTED requests for same user/paper
--- Email validation handle in app layer
--- Serial is old but good, map easily in Java using integer
-
--- NOTE: Every design change (new, fix, or improvement) must be documented (WHY).
--- In prod, all schema changes must be versioned and applied via proper migration scripts.
--- In dev, complete schema rewrites are allowed temporarily.
-
 -- DEPARTMENTS
 CREATE TABLE departments (
     department_id SERIAL PRIMARY KEY,
@@ -86,5 +91,4 @@ CREATE TABLE refresh_tokens (
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     last_used_at TIMESTAMP NULL
 );
-
 ```

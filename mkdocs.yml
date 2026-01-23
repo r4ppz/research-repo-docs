@@ -39,6 +39,6 @@ nav:
   - Home: index.md
   - API Contract: api_contract.md
   - Database: database_migration.md
-  - Specification: research_repo_spec.md
+  - Specification: specification.md
 
 markdown_extensions: []

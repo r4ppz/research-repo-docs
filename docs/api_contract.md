@@ -45,7 +45,7 @@
     - [Validation Rules](#validation-rules)
     - [Statistics / Analytics](#statistics-analytics)
     - [State Machines](#state-machines)
-      <!--toc:end-->
+        <!--toc:end-->
 
 ---
 
@@ -238,9 +238,11 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 ### POST /api/auth/refresh
 
-- **Public.** Exchanges the cookie-based refresh token for a new access token and rotates the
-  refresh token.
-- **Requires `Cookie` header** containing the refresh token.
+- **Public (no JWT required).** Exchanges the cookie-based refresh token for a new access token and
+  rotates the refresh token.
+- **Important:** Although this endpoint is public (does not require an `Authorization` header), it
+  requires a valid `refreshToken` present in an `HttpOnly` cookie. The browser attaches this cookie
+  automatically; frontend code must not attempt to read or store the refresh token directly.
 
 **Request:**
 
@@ -274,9 +276,11 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 
 ### POST /api/auth/logout
 
-- **Public.** Logs the user out by revoking the refresh token in the DB and clearing the cookie in
-  the browser.
-- **Requires `Cookie` header.**
+- **Public (no JWT required).** Logs the user out by revoking the refresh token in the DB and
+  clearing the cookie in the browser.
+- **Important:** Although this endpoint is public (does not require an `Authorization` header), it
+  requires the `refreshToken` to be present in an `HttpOnly` cookie. The browser attaches this cookie
+  automatically; frontend code must not attempt to read or store the refresh token directly.
 
 **Request:**
 
@@ -1118,8 +1122,8 @@ Idempotent endpoints to toggle paper visibility.
 
 - Effects on endpoints:
     - `GET /api/users/me/requests` SHOULD return the authenticated user's requests for archived
-      papers (typically `REJECTED`) so the user can view and optionally remove their request row.
-      Returned request objects MUST include `requestId`, `status`, `createdAt`, `updatedAt` and a
+      papers (typically `REJECTED`) so the user can view and optionally remove their request row using [DELETE /api/requests/{requestId}](#delete-apirequestsrequestid).
+    - Returned request objects MUST include `requestId`, `status`, `createdAt`, `updatedAt` and a
       minimal `paper` summary with `paperId`, `title`, `department`, and `archived: true` only. The
       `paper` object MUST NOT include sensitive fields such as `filePath` or download links for
       archived papers. Users MUST NOT be allowed to create new requests for archived papers.
