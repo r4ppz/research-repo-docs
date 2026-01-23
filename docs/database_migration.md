@@ -16,7 +16,7 @@
 
 ## V1\_\_initial_schema.sql
 
-```
+```sql
 -- DEPARTMENTS
 CREATE TABLE departments (
     department_id SERIAL PRIMARY KEY,

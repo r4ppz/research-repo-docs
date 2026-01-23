@@ -4,6 +4,8 @@ repo_url: https://github.com/r4ppz/research-repo-docs
 
 theme:
   name: material
+  icon:
+    logo: material/book-open-variant
   language: en
 
   palette:
