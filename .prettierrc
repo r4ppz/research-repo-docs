@@ -1,0 +1,18 @@
+{
+    "printWidth": 80,
+    "singleQuote": true,
+    "tabWidth": 4,
+    "trailingComma": "none",
+    "arrowParens": "avoid",
+    "proseWrap": "preserve",
+    "embeddedLanguageFormatting": "auto",
+    "overrides": [
+        {
+            "files": "*.md",
+            "options": {
+                "tabWidth": 4,
+                "proseWrap": "preserve"
+            }
+        }
+    ]
+}

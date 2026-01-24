@@ -1,91 +1,83 @@
 # Research Repository — Architecture & Implementation Spec
 
-This spec is intentionally detailed. It is the **single source of truth** for backend and frontend
-data design, API contracts, and authorization logic. All changes must be documented here first, then
-implemented.
+This spec is intentionally detailed. It is the **single source of truth** for backend and frontend data design, API contracts, and authorization logic. All changes must be documented here first, then implemented.
 
 ---
 
 ## High-level Summary
 
-- Purpose: A gated school research repository where students can browse paper metadata, request
-  access to full documents, and where admins manage papers and requests.
+- **Purpose**: A gated school research repository where students can browse paper metadata, request access to full documents, and where admins manage papers and requests.
 
-- Authentication: Google SSO restricted to `@acdeducation.com`.
+- **Authentication**: Google SSO restricted to `@acdeducation.com`.
 
-- Authorization: Access tokens (JWT) with role-based access (STUDENT, TEACHER, DEPARTMENT_ADMIN,
-  SUPER_ADMIN). Department scoping for DEPARTMENT_ADMIN applies only to admin operations (paper
-  CRUD, request approvals); homepage browsing shows all departments.
+- **Authorization**: Access tokens (JWT) with role-based access (STUDENT, TEACHER, DEPARTMENT_ADMIN, SUPER_ADMIN). Department scoping for DEPARTMENT_ADMIN applies only to admin operations (paper CRUD, request approvals); homepage browsing shows all departments.
 
-- Data contract: API returns UI-ready, nested objects (no raw IDs-only responses).
+- **Data contract**: API returns UI-ready, nested objects (no raw IDs-only responses).
 
-- File access:
+- **File access**:
     - Students: only if their request is ACCEPTED **and** the paper is not archived. Archived papers
-      are treated as unavailable and should result in HTTP 404 (`RESOURCE_NOT_AVAILABLE`) for
-      students/teachers.
+      are treated as unavailable and should result in HTTP 404 (`RESOURCE_NOT_AVAILABLE`).
     - Teachers: only if their request is ACCEPTED **and** the paper is not archived. Archived papers
-      are treated as unavailable and should result in HTTP 404 (`RESOURCE_NOT_AVAILABLE`) for
-      students/teachers.
+      are treated as unavailable and should result in HTTP 404 (`RESOURCE_NOT_AVAILABLE`).
     - Admins: full access within their department (DEPARTMENT_ADMIN) or globally (SUPER_ADMIN).
 
-- Archive feature:
+- **Archive feature**:
     - Papers can be archived/unarchived by admins.
     - Archived papers are hidden from students' library.
     - Archived papers are visible in teacher view (can see metadata but cannot request or download).
-    - Students with previously ACCEPTED requests cannot download archived papers; UI should badge
-      "Archived".
+    - Students with previously ACCEPTED requests cannot download archived papers; UI should badge "Archived".
 
 ---
 
 ## Tech Stack
 
-**1. Backend**
+#### Backend
+
 The backend is a RESTful API built with **Java 21** and the **Spring Boot** ecosystem.
 
-- **Core Framework:** Spring Boot 3.5.9
-- **Language:** Java 21
-- **Build Tool:** Maven (using `mvnw` wrapper)
-- **Database & Persistence:**
-    - **PostgreSQL:** Relational database for data storage.
-    - **Spring Data JPA (Hibernate):** Object-Relational Mapping (ORM).
-    - **Flyway:** Database version control and migration management (schema/data population).
-- **Security & Authentication:**
-    - **Spring Security:** For securing API endpoints.
-    - **OAuth2 Resource Server:** Integration for token-based security.
-    - **JWT (jjwt):** Custom implementation for JSON Web Token generation and validation.
-    - **Google API Client:** For Google OAuth2 integration.
-- **API Documentation:**
-    - **SpringDoc OpenAPI (Swagger UI):** Automated API documentation and interactive UI.
-- **Utilities & Quality:**
-    - **Lombok:** Reducing boilerplate code (annotations for getters, setters, builders, etc.).
-    - **Validation:** JSR-380 (Bean Validation) for request DTOs.
-- **Infrastructure:**
-    - **Docker:** Containerization via `Dockerfile` and `docker-compose.yml`.
+- **Core Framework**: Spring Boot 3.5.9
+- **Language**: Java 21
+- **Build Tool**: Maven (using `mvnw` wrapper)
+- **Database & Persistence**:
+    - PostgreSQL: Relational database for data storage.
+    - Spring Data JPA (Hibernate): Object-Relational Mapping (ORM).
+    - Flyway: Database version control and migration management (schema/data population).
+- **Security & Authentication**:
+    - Spring Security: For securing API endpoints.
+    - OAuth2 Resource Server: Integration for token-based security.
+    - JWT (jjwt): Custom implementation for JSON Web Token generation and validation.
+    - Google API Client: For Google OAuth2 integration.
+- **Utilities & Quality**:
+    - Lombok: Reducing boilerplate code (annotations for getters, setters, builders, etc.).
+    - Validation: JSR-380 (Bean Validation) for request DTOs.
+- **Infrastructure**:
+    - Docker: Containerization via `Dockerfile` and `docker-compose.yml`.
 
-**Frontend**
+#### Frontend
+
 The frontend is a Single Page Application (SPA) built with **React** and **TypeScript**.
 
-- **Core Framework:** React 19 (with React compiler)
-- **Build Tool & Dev Server:** Vite 7
-- **Language:** TypeScript
-- **State Management & Data Fetching:**
-    - **TanStack Query (React Query) v5:** For server state management and caching.
-    - **Axios:** HTTP client for API communication.
-- **UI & Components:**
-    - **Radix UI:** Unstyled, accessible UI primitives (Dialog, Select, Tooltip).
-    - **TanStack Table v8:** Headless UI for building powerful tables and data grids.
-    - **Lucide React & React Icons:** Icon sets.
-    - **Clsx:** Utility for constructing conditional class names.
-- **Routing:**
-    - **React Router DOM v7:** Navigation and routing management.
-- **Styling:**
-    - **Pure CSS / CSS Modules:** Using `global.css`, `variables.css`, and `reset.css`.
-- **Tooling & Linting:**
-    - **ESLint v9:** For JavaScript/TypeScript linting.
-    - **Stylelint v16:** For CSS linting and formatting.
-    - **Prettier:** Code formatting.
-- **Deployment:**
-    - **gh-pages:** Used for deploying to GitHub Pages.
+- **Core Library**: React 19 (with React compiler)
+- **Build Tool & Dev Server**: Vite 7
+- **Language**: TypeScript
+- **State Management & Data Fetching**:
+    - TanStack Query (React Query) v5: For state management and caching.
+    - Axios: HTTP client for API communication.
+- **UI & Components**:
+    - Radix UI: Unstyled, accessible UI primitives (Dialog, Select, Tooltip).
+    - TanStack Table v8: Headless UI for building powerful tables and data grids.
+    - Lucide React & React Icons: Icon sets.
+    - Clsx: Utility for constructing conditional class names.
+- **Routing**:
+    - React Router DOM v7: Navigation and routing management.
+- **Styling**:
+    - Pure CSS / CSS Modules: Using `global.css`, `variables.css`, and `reset.css`.
+- **Tooling & Linting**:
+    - ESLint v9: For JavaScript/TypeScript linting.
+    - Stylelint v16: For CSS linting and formatting.
+    - Prettier: Code formatting.
+- **Deployment**:
+    - gh-pages: Used for deploying to GitHub Pages.
 
 ---
 
@@ -122,26 +114,7 @@ The frontend is a Single Page Application (SPA) built with **React** and **TypeS
 
 ---
 
-## Frontend Considerations
-
-- Common API endpoints for filters (all roles):
-    - `GET /api/filters/years` → returns years based on role-scoped visibility
-    - `GET /api/filters/departments` → returns departments alphabetically sorted
-
-- Frontend filtering and display:
-    - Filter endpoints return all accessible data; frontend may filter displayed options based on
-      page context (e.g., show only user's department on admin pages)
-    - Use auth context (role, departmentId from JWT) to conditionally render or filter UI elements
-
-- Search and filtering capabilities:
-    - Full-text search across paper title, author name, and abstract
-    - Multi-department filtering with comma-separated department IDs and years.
-    - Sorting options: by submission date (default), title, or author name
-    - Sort order: ascending or descending (descending is default)
-
----
-
-## File Storage Strategy
+## File Storage Handling
 
 - **Local Filesystem:** PDF files are stored directly on the server's local filesystem using Java
   File I/O operations.
@@ -193,24 +166,17 @@ requirements, see the full [API Contract](/docs/api_contract.md).
     - On first login, a new user record is created with:
         - Default role: `STUDENT`
         - Profile picture URL from Google (extracted from ID token claims)
-        - Profile picture is stored as a URL string (not binary) to minimize storage and leverage
-          Google's CDN
-        - Picture URL remains available even if Google's original URL expires (stored as snapshot on
-          login)
+        - Profile picture is stored as a URL string (not binary) to minimize storage and leverage Google's CDN
 
 - **Token Refresh Flow (Cookie-Based)**:
     - When access token expires, frontend calls `/api/auth/refresh`.
     - **Browser automatically attaches the `refreshToken` cookie** (no manual storage in React).
     - Backend validates refresh token against database records (checks expiration).
-    - If a refresh token is used again (e.g., due to network issues), the server returns 401
-      Unauthorized and the client redirects to login.
+    - If a refresh token is used again (e.g., due to network issues), the server returns 401 Unauthorized and the client redirects to login.
     - Backend generates new access token and new refresh token.
-    - **Rotation:** Old refresh token is revoked; new refresh token is sent via a new `Set-Cookie`
-      header.
+    - **Rotation:** Old refresh token is revoked; new refresh token is sent via a new `Set-Cookie` header.
     - New access token is returned in JSON body.
-    - **Note:** `/api/auth/refresh` is a public endpoint (no JWT required) but it does require the
-      `refreshToken` to be present in an `HttpOnly` cookie. Browsers attach the cookie automatically; the
-      frontend must never attempt to read or store the refresh token directly.
+    - **Note:** `/api/auth/refresh` is a public endpoint (no JWT required) but it does require the `refreshToken` to be present in an `HttpOnly` cookie. Browsers attach the cookie automatically; the frontend must never attempt to read or store the refresh token directly.
 
 - **Logout Flow**:
     - Frontend calls `/api/auth/logout`.
@@ -223,13 +189,13 @@ requirements, see the full [API Contract](/docs/api_contract.md).
       refresh token directly.
 
 - **Manual Role Assignment**:
-    - Roles for privileged users (Teacher and Admin) are managed via a static configuration file (`privileged-users.yaml`) on the backend server.
+    - Privileged roles (Teacher, Admin) are managed on the backend. Contact the devs to request changes.
     - When a user logs in via Google SSO, the system checks their email against this configuration to determine their role and assigned department (if applicable).
     - If the email is not found in the configuration, the user is assigned the default `STUDENT` role.
-    - Any changes to privileged roles require updating this configuration file and may require a service restart or a fresh login by the user.
+    - Any changes to privileged roles may require a service restart or a fresh login by the user.
 
 - **Access Token Structure (JWT)**:
-    - **Claims**: `sub` (userId), `email`, `fullName`, `role`, `departmentId`, `iat`, `exp`, `iss`.
+    - **Claims**: `sub` (userId), `email`, `fullName`, `role`, `departmentId`, `profilePictureUrl` ,`iat`, `exp`, `iss`.
     - Lifetime: 60 minutes.
     - Backend uses `sub` for all RBAC/ABAC queries.
 
