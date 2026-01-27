@@ -22,10 +22,14 @@ The Research Repository is a gated academic research portal where students can b
 - Read `docs/api_contract.md` before implementing new frontend integrations.
 - Prefer small, focused pull requests that update docs and code together when applicable.
 
-Contact the maintainers via the repository issues.
+Contact the maintainers via the repository [issues](https://github.com/r4ppz/research-repository/issues).
 
 ---
 
 ## Branding and Intellectual Property
 
-The school's name, logo, and all research papers hosted within this system are the property of the school. The MIT License applies strictly to the source code and documentation. Use of the school's branding outside of this project is not permitted without explicit authorization.
+The school’s name, logo, and all research papers hosted within this system are the property of the school. The MIT license applies strictly to the source code and documentation.
+
+The backend software is provided “as is”, without warranty of any kind, express or implied. The developers do not warrant that the system will be uninterrupted, error-free, or that data loss will not occur.
+
+In no event shall the developers be liable for any direct, indirect, incidental, or consequential damages (including, but not limited to, loss of data, database corruption, or system downtime) arising out of the use or inability to use the system, even if advised of the possibility of such damage.
