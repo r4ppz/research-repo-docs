@@ -83,6 +83,6 @@ Contact the maintainers via the repository [issues](https://github.com/r4ppz/res
 
 The school’s name, logo, and all research papers hosted within this system are the property of the school. The MIT license applies strictly to the source code and documentation.
 
-The backend software is provided “as is”, without warranty of any kind, express or implied. The developers do not warrant that the system will be uninterrupted, error-free, or that data loss will not occur.
+The software is provided “as is”, without warranty of any kind, express or implied. The developers do not warrant that the system will be uninterrupted, error-free, or that data loss will not occur.
 
 In no event shall the developers be liable for any direct, indirect, incidental, or consequential damages (including, but not limited to, loss of data, database corruption, or system downtime) arising out of the use or inability to use the system, even if advised of the possibility of such damage.
