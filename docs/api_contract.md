@@ -1,4 +1,4 @@
-# Research Repository — API Contract (Authoritative)
+# Research Repository — API Contract
 
 ## Conventions
 
@@ -1176,13 +1176,6 @@ Download or view a research paper file.
 - Users can create new requests after previous ones are REJECTED
 - Approve/Reject: only PENDING
 - Attempting to create duplicate PENDING/ACCEPTED request → **409 DUPLICATE_REQUEST**
-
----
-
-## Statistics / Analytics
-
-- `/api/admin/stats/requests` → request stats scoped by department
-- `/api/admin/stats/research` → paper stats scoped by department
 
 ---
 

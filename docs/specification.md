@@ -96,7 +96,7 @@ The frontend is a Single Page Application (SPA) built with **React** and **TypeS
 
 - **STUDENT**
     - LibraryPage (non-archived papers, all departments)
-    - RequestPage` → Own requests
+    - RequestPage → Own requests
 
 - **TEACHER**
     - LibraryPage (all papers metadata, all departments)
@@ -137,14 +137,14 @@ The frontend is a Single Page Application (SPA) built with **React** and **TypeS
 
 ## Database Schema
 
-For the full database design and migration, see the [Database](/docs/database_migration.md).
+For the full database design and migration, see the [Database](./database_migration.md).
 
 ---
 
 ## API Endpoints
 
 For detailed API documentation including request/response schemas, error codes, and authorization
-requirements, see the full [API Contract](/docs/api_contract.md).
+requirements, see the full [API Contract](./api_contract.md).
 
 ---
 
@@ -239,4 +239,4 @@ The system is designed with a "minimal data" approach to prioritize security and
 ## Error & Validation Conventions
 
 For complete endpoint-specific error codes and frontend rendering rules, see the
-[API Contract](/docs/api_contract.md).
+[API Contract](./api_contract.md).

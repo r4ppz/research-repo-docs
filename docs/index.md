@@ -5,8 +5,9 @@ The Research Repository is a gated academic research portal where students can b
 - [Frontend](https://github.com/r4ppz/research-repository) and [documentation/specifications](https://github.com/r4ppz/research-repo-docs) are open source — contributions are welcome.
 - Backend code is closed source. If you'd like to help maintain or contribute to backend work, please contact the maintainers.
 
-> **Active development:** APIs and specs are unstable. Expect breaking changes during the Alpha
-> phase. A stable version (beta) will be released once the system is sufficiently usable.
+> Note: This system is currently in alpha, which means the APIs are unstable and incomplete. Expect breaking changes!. A stable version (beta) will be released once the system is sufficiently usable.
+
+> We are student developers learning to design a reliable system. If you see a problem, security issue, architectural flaw, or anything else with our design, please notify us so we can improve. This is open source by choice so you can help us and also check the reliability of the system we are creating.
 
 ---
 
