@@ -22,51 +22,30 @@ The Research Repository is a gated academic research portal where students can b
 
 #### Backend
 
-The backend is a RESTful API built with Java 21 and the Spring Boot ecosystem.
+RESTful API with Java 21 and Spring Boot.
 
-- Core Framework: Spring Boot 3
-- Language: Java 21
-- Build Tool: Maven
-- Database & Persistence:
-    - PostgreSQL: Relational database for data storage.
-    - Spring Data JPA (Hibernate): Object-Relational Mapping (ORM).
-    - Flyway: Database version control and migration management (schema/data population).
-- Security & Authentication:
-    - Spring Security: For securing API endpoints.
-    - OAuth2 Resource Server: Integration for token-based security.
-    - JWT (jjwt): Custom implementation for JSON Web Token generation and validation.
-    - Google API Client: For Google OAuth2 integration.
-- Utilities & Quality:
-    - Lombok: Reducing boilerplate code (annotations for getters, setters, builders, etc.).
-    - Validation: JSR-380 (Bean Validation) for request DTOs.
-- Infrastructure:
-    - Docker: Containerization via Dockerfile and docker-compose.yml.
+- Framework: Spring Boot 3
+- Build: Maven
+- Database: PostgreSQL, Spring Data JPA, Flyway
+- Security: Spring Security, OAuth2, JWT, Google API Client
+- Utilities: Lombok, Bean Validation
+- Testing: JUnit, Mockito, Testcontainers
+- Infrastructure: Docker
 
 #### Frontend
 
-The frontend is a Single Page Application (SPA) built with React and TypeScript.
+SPA with React and TypeScript.
 
-- Core Library: React 19 (with React compiler)
-- Build Tool & Dev Server: Vite 7
+- Framework: React 19
+- Build: Vite
 - Language: TypeScript
-- State Management & Data Fetching:
-    - TanStack Query (React Query) v5: For state management and caching.
-    - Axios: HTTP client for API communication.
-- UI & Components:
-    - Radix UI: Unstyled, accessible UI primitives (Dialog, Select, Tooltip).
-    - TanStack Table v8: Headless UI for building powerful tables and data grids.
-    - Lucide React & React Icons: Icon sets.
-    - Clsx: Utility for constructing conditional class names.
-- Routing:
-    - React Router DOM v7: Navigation and routing management.
-- Styling:
-    - Pure CSS / CSS Modules: Using global.css, variables.css, and reset.css.
-- Tooling & Linting:
-    - ESLint v9: For JavaScript/TypeScript linting.
-    - Stylelint v16: For CSS linting and formatting.
-    - Prettier: Code formatting.
-- Deployment:
-    - gh-pages: Used for deploying to GitHub Pages.
+- State/Data: TanStack Query, Axios
+- UI: Radix UI, TanStack Table, Lucide/React Icons, Clsx
+- Routing: React Router DOM
+- Styling: CSS Modules
+- Tooling: ESLint, Stylelint, Prettier
+- Testing: Jest, React Testing Library
+- Deployment: gh-pages
 
 ---
 
