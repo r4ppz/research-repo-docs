@@ -29,58 +29,6 @@ This spec is intentionally detailed. It is the **single source of truth** for ba
 
 ---
 
-## Tech Stack
-
-#### Backend
-
-The backend is a RESTful API built with **Java 21** and the **Spring Boot** ecosystem.
-
-- **Core Framework**: Spring Boot 3.5.9
-- **Language**: Java 21
-- **Build Tool**: Maven (using `mvnw` wrapper)
-- **Database & Persistence**:
-    - PostgreSQL: Relational database for data storage.
-    - Spring Data JPA (Hibernate): Object-Relational Mapping (ORM).
-    - Flyway: Database version control and migration management (schema/data population).
-- **Security & Authentication**:
-    - Spring Security: For securing API endpoints.
-    - OAuth2 Resource Server: Integration for token-based security.
-    - JWT (jjwt): Custom implementation for JSON Web Token generation and validation.
-    - Google API Client: For Google OAuth2 integration.
-- **Utilities & Quality**:
-    - Lombok: Reducing boilerplate code (annotations for getters, setters, builders, etc.).
-    - Validation: JSR-380 (Bean Validation) for request DTOs.
-- **Infrastructure**:
-    - Docker: Containerization via `Dockerfile` and `docker-compose.yml`.
-
-#### Frontend
-
-The frontend is a Single Page Application (SPA) built with **React** and **TypeScript**.
-
-- **Core Library**: React 19 (with React compiler)
-- **Build Tool & Dev Server**: Vite 7
-- **Language**: TypeScript
-- **State Management & Data Fetching**:
-    - TanStack Query (React Query) v5: For state management and caching.
-    - Axios: HTTP client for API communication.
-- **UI & Components**:
-    - Radix UI: Unstyled, accessible UI primitives (Dialog, Select, Tooltip).
-    - TanStack Table v8: Headless UI for building powerful tables and data grids.
-    - Lucide React & React Icons: Icon sets.
-    - Clsx: Utility for constructing conditional class names.
-- **Routing**:
-    - React Router DOM v7: Navigation and routing management.
-- **Styling**:
-    - Pure CSS / CSS Modules: Using `global.css`, `variables.css`, and `reset.css`.
-- **Tooling & Linting**:
-    - ESLint v9: For JavaScript/TypeScript linting.
-    - Stylelint v16: For CSS linting and formatting.
-    - Prettier: Code formatting.
-- **Deployment**:
-    - gh-pages: Used for deploying to GitHub Pages.
-
----
-
 ## Roles & Capabilities
 
 | Role             | Department | Can View Metadata                               | Can Download/View PDF                           | Can CRUD Papers             | Can Approve/Reject Requests                 |
