@@ -62,27 +62,6 @@ This spec is intentionally detailed. It is the **single source of truth** for ba
 
 ---
 
-## File Storage Handling
-
-- **Local Filesystem:** PDF files are stored directly on the server's local filesystem using Java
-  File I/O operations.
-- **Docker Volume Mount:** A host directory is mounted to the container (e.g.,
-  `-v /opt/repo/data:/app/uploads`) to persist files across container restarts.
-- **Performance:** Direct filesystem access provides lower latency compared to remote storage
-  services like S3.
-- **Deployment Considerations:** This approach creates a stateful deployment that couples files to a
-  specific server instance.
-- **Scalability Limitations:** Horizontal scaling requires shared storage (NFS) or prevents multiple
-  instances from being viable.
-- **Reliability:** Files are tied to the physical server; proper backup strategy (e.g., cron job
-  with rsync) is essential for disaster recovery.
-- **Database Design:** The `file_path` column stores only the relative file path (e.g.,
-  `2023/dept_cs/paper_123.pdf`) rather than full API paths. The complete URL is constructed
-  dynamically in the DTO/Mapper layer.
-- **Cost:** No external storage services or cloud storage fees required for basic deployment.
-
----
-
 ## Database Schema
 
 For the full database design and migration, see the [Database](./database_migration.md).
@@ -93,6 +72,17 @@ For the full database design and migration, see the [Database](./database_migrat
 
 For detailed API documentation including request/response schemas, error codes, and authorization
 requirements, see the full [API Contract](./api_contract.md).
+
+---
+
+## Data Privacy & Collection
+
+The system is designed with a "minimal data" approach to prioritize security and user privacy:
+
+- **Authentication:** Handled entirely via Google OAuth 2.0. The system **never** sees or stores user passwords.
+- **Identity:** We store only the user's Full Name, school email (`@acdeducation.com`), and Google profile picture URL.
+- **Academic Data:** Research metadata (Title, Author, Abstract, Department) and the uploaded PDF/DOCX files.
+- **Project Phase:** During this **Alpha** stage, data is for development purposes. Users should maintain original copies of all documents as data persistence is not yet guaranteed.
 
 ---
 
@@ -161,6 +151,15 @@ requirements, see the full [API Contract](./api_contract.md).
 
 ---
 
+## File Storage Handling
+
+- **Local Filesystem:** PDF files are stored directly on the server's local filesystem using Java File I/O operations.
+- **Docker Volume Mount:** A host directory is mounted to the container (e.g., `-v /opt/repo/data:/app/uploads`) to persist files across container restarts.
+- **Reliability:** Files are tied to the physical server; proper backup strategy (e.g., cron job with rsync) is essential for disaster recovery.
+- **Database Design:** The `file_path` column stores only the relative file path (e.g., `2023/dept_cs/paper_123.pdf`) rather than full API paths. The complete URL is constructed dynamically in the DTO/Mapper layer.
+
+---
+
 ## Security
 
 - **HTTPS** required (Cookies must be `Secure`).
@@ -174,17 +173,3 @@ requirements, see the full [API Contract](./api_contract.md).
 - **File validation**: MIME + size limits (20MB).
 - **Logging**: Audit decisions including token refresh attempts.
 - **Refresh token rotation**: New token issued on every use; old token invalidated.
-
-## Data Privacy & Collection
-
-The system is designed with a "minimal data" approach to prioritize security and user privacy:
-
-- **Authentication:** Handled entirely via Google OAuth 2.0. The system **never** sees or stores user passwords.
-- **Identity:** We store only the user's Full Name, school email (`@acdeducation.com`), and Google profile picture URL.
-- **Academic Data:** Research metadata (Title, Author, Abstract, Department) and the uploaded PDF/DOCX files.
-- **Project Phase:** During this **Alpha** stage, data is for development purposes. Users should maintain original copies of all documents as data persistence is not yet guaranteed.
-
-## Error & Validation Conventions
-
-For complete endpoint-specific error codes and frontend rendering rules, see the
-[API Contract](./api_contract.md).
