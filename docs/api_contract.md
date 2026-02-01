@@ -472,6 +472,9 @@ papers.
 
 ### GET /api/papers/{paperId}/my-request
 
+NOTE: The return type of this endpoint is incorrect. It should return 200 whether the resource is found or not, or 200 with no content.
+its currently implemented so I am not touching this lol.
+
 - Returns the current user's request for the specified paper, if it exists.
 
 - Available to STUDENT and TEACHER roles.
