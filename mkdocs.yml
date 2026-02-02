@@ -1,53 +1,54 @@
-site_name: "Research Repository Documentation"
+site_name: 'Research Repository Documentation'
 
 repo_url: https://github.com/r4ppz/research-repo-docs
 
 theme:
-  name: material
-  icon:
-    logo: material/book-open-variant
-  language: en
+    name: material
+    icon:
+        logo: material/book-open-variant
+    language: en
 
-  palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: sky blue
-      accent: sky blue
-      toggle:
-        icon: material/weather-sunny
-        name: Switch to dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: sky blue
-      accent: sky blue
-      toggle:
-        icon: material/weather-night
-        name: Switch to light mode
-      icon:
-        repo: fontawesome/brands/github
+    palette:
+        - media: '(prefers-color-scheme: light)'
+          scheme: default
+          primary: sky blue
+          accent: sky blue
+          toggle:
+              icon: material/weather-sunny
+              name: Switch to dark mode
+        - media: '(prefers-color-scheme: dark)'
+          scheme: slate
+          primary: sky blue
+          accent: sky blue
+          toggle:
+              icon: material/weather-night
+              name: Switch to light mode
+          icon:
+              repo: fontawesome/brands/github
 
-  features:
-    - navigation.instant
-    - navigation.tracking
-    - navigation.top
-    - search.suggest
-    - search.highlight
-    - content.code.copy
+    features:
+        - navigation.instant
+        - navigation.tracking
+        - navigation.top
+        - search.suggest
+        - search.highlight
+        - content.code.copy
 
 extra:
-  generator: false
+    generator: false
 
 nav:
-  - Home: index.md
-  - Specification: specification.md
-  - API Contract: api_contract.md
-  - Database: database_migration.md
+    - Home: index.md
+    - Specification: specification.md
+    - API Contract: api_contract.md
+    - API Contract (Improved): rest_api.md
+    - Database: database_migration.md
 
 markdown_extensions:
-  - pymdownx.highlight:
-      anchor_linenums: true
-      line_spans: __span
-      pygments_lang_class: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.superfences
+    - pymdownx.highlight:
+          anchor_linenums: true
+          line_spans: __span
+          pygments_lang_class: true
+    - pymdownx.inlinehilite
+    - pymdownx.snippets
+    - pymdownx.superfences
