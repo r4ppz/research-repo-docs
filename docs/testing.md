@@ -1,6 +1,6 @@
 # Testing - Setup & User Guide
 
-This containerized setup is provided exclusively for distribution and local testing. There isn't a server yet, so in order to test it out, running the system via Docker is the only way to evaluate the system locally without requiring you to pull the whole codebase, setup and build it yourself.
+This containerized setup is provided exclusively for distribution and local testing. There is no server yet, so in order to test it out, running the system via Docker is the only way to evaluate the system locally without requiring you to pull the whole codebase, setup and build it yourself.
 
 > This is currently in alpha so expect a lot of bugs!
 
@@ -16,9 +16,8 @@ This containerized setup is provided exclusively for distribution and local test
 
 - Download (.zip): [HERE](https://drive.google.com/file/d/1WIO9DtjvMK68WXbJ3gp3MxgoExX3Gsyp/view?usp=sharing)
 
-> env/secrets/credentials are just temporary/fake for testing purposes only.
+> This is not the whole codebase but a deployment package. The zip contains configuration files for running pre-built Docker images hosted remotely
 
-- This is not the whole codebase but a deployment package. The zip contains configuration files for running pre-built Docker images hosted remotely
 - The zip file will consist of two files:
     - `docker-compose.yml` (This will be used for pulling the application images)
     - `privileged-users.yaml` (This is where you will be managing your role)
@@ -27,8 +26,8 @@ This containerized setup is provided exclusively for distribution and local test
 
 ## Running the System
 
-- Unzip the downloaded file to a folder.
-- Right-click inside the project folder and select **"Open in Terminal"** or **"Open command window here."**
+- Unzip the zip file and enter the extracted folder
+- Right-click inside the folder and select **"Open in Terminal"** or **"Open command window here."**
 - Run the following command:
 
 ```bash

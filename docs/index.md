@@ -2,14 +2,14 @@
 
 The Research Repository is a gated academic research portal where students can browse paper metadata, request access to full documents, and administrators review, manage papers and student requests.
 
-- [Frontend](https://github.com/r4ppz/research-repository) and [documentation/specifications](https://github.com/r4ppz/research-repo-docs) are open source — contributions are welcome.
+- [Frontend](https://github.com/r4ppz/research-repository) and [documentation](https://github.com/r4ppz/research-repo-docs) are open source — contributions are welcome.
 - Backend code is closed source (for now). If you'd like to help maintain or contribute to backend work, please contact the maintainers.
 
 > Note: This system is currently in alpha, which means the APIs are unstable, incomplete, and prone to many bugs. A stable version (beta) will be released once the system is sufficiently usable.
 
 > We are student developers learning to design a reliable system. If you see a problem, security issue, architectural flaw, or anything else with our design, please [notify](https://github.com/r4ppz/research-repository/issues) us so we can improve. This is open source by choice so you can help us and also check the reliability of the system we are creating.
 
-The system is ready for testing, but because there is no dedicated server yet, you must contact the developers to try it. There are two ways to do this. First, you can visit the [GitHub Pages SPA Frontend](https://r4ppz.github.io/research-repository/) and ask the developers to run the backend on their hardware to support your session. Alternatively, you can use the containerized version (.zip file) of the entire system, which includes the frontend, backend, and database in a Docker Compose file for you to run locally. **See the Testing page for more info: [Testing](./testing.md)**
+The system is ready for testing, but because there is no dedicated server yet, you have to ask the devs to run the backend on their hardware to support your session and visit the [SPA Frontend](https://r4ppz.github.io/research-repository/) hosted on GitHub pages. Alternatively, you can use the containerized version (.zip file) of the system and run everything locally. **See the Testing page for more info: [Testing](./testing.md)**
 
 ---
 
