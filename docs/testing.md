@@ -16,7 +16,7 @@ We are currently using mock data. Do not trust the system's reliability, especia
 
 ## Download the Package
 
-- Download (.zip): [HERE](link)
+- Download (.zip): [HERE](https://drive.google.com/file/d/1WIO9DtjvMK68WXbJ3gp3MxgoExX3Gsyp/view?usp=sharing)
 
 > env/secrets/credentials are just temporary/fake for testing purposes only.
 
