@@ -7,9 +7,9 @@ The Research Repository is a gated academic research portal where students can b
 
 > Note: This system is currently in alpha, which means the APIs are unstable, incomplete, and prone to many bugs. A stable version (beta) will be released once the system is sufficiently usable.
 
-> The system is ready for testing, but because there is no dedicated server yet, you must contact the developers to try it. There are two ways to do this. First, you can visit the [GitHub Pages SPA Frontend](https://r4ppz.github.io/research-repository/) and ask the developers to run the backend on their hardware to support your session. Alternatively, you can use the containerized version (.zip file) of the entire system, which includes the frontend, backend, and database in a Docker Compose file for you to run locally. **See the Testing page for more info: [Testing](./testing.md)**
+> We are student developers learning to design a reliable system. If you see a problem, security issue, architectural flaw, or anything else with our design, please [notify](https://github.com/r4ppz/research-repository/issues) us so we can improve. This is open source by choice so you can help us and also check the reliability of the system we are creating.
 
-We are student developers learning to design a reliable system. If you see a problem, security issue, architectural flaw, or anything else with our design, please [notify](https://github.com/r4ppz/research-repository/issues) us so we can improve. This is open source by choice so you can help us and also check the reliability of the system we are creating.
+The system is ready for testing, but because there is no dedicated server yet, you must contact the developers to try it. There are two ways to do this. First, you can visit the [GitHub Pages SPA Frontend](https://r4ppz.github.io/research-repository/) and ask the developers to run the backend on their hardware to support your session. Alternatively, you can use the containerized version (.zip file) of the entire system, which includes the frontend, backend, and database in a Docker Compose file for you to run locally. **See the Testing page for more info: [Testing](./testing.md)**
 
 ---
 
