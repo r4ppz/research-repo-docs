@@ -2,9 +2,7 @@
 
 This containerized setup is provided exclusively for distribution and local testing. There isn't a server yet, so in order to test it out, running the system via Docker is the only way to evaluate the system locally without requiring you to pull the whole codebase, setup and build it yourself.
 
-This is currently in alpha so expect a lot of bugs!
-
-We are currently using mock data. Do not trust the system's reliability, especially the file handling. Always keep a copy of the file in case it gets corrupted, deleted, or lost due to permission issues.
+> This is currently in alpha so expect a lot of bugs!
 
 ## Prerequisites (One-Time Setup)
 
@@ -24,7 +22,6 @@ We are currently using mock data. Do not trust the system's reliability, especia
 - The zip file will consist of two files:
     - `docker-compose.yml` (This will be used for pulling the application images)
     - `privileged-users.yaml` (This is where you will be managing your role)
-- Once the system starts, it will automatically create a folder called `uploads/` (this is where the uploaded PDF/DOCX files will be stored)
 
 ---
 
@@ -67,6 +64,15 @@ docker compose restart backend
 > For more info about roles and capabilities, read: [Role and Capabilities](./specification.md#roles-capabilities)
 
 ---
+
+## How does this work?
+
+- Running docker `compose up -d` pulls the images from Docker Hub and starts the services defined in `docker-compose.yml` in the background.
+- Services:
+    - frontend: NGINX serving the frontend SPA
+    - backend: Spring Boot API (business logic)
+    - postgres: database storage
+- On first start, the backend creates an uploads/ folder. Uploaded PDF/DOCX files are saved there on disk. The database stores only the file path (not the binary) to avoid performance and size issues.
 
 ## Control Commands
 
