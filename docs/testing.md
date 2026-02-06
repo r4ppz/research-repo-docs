@@ -2,7 +2,7 @@
 
 This containerized setup is provided exclusively for distribution and local testing. There is no server yet, so in order to test it out, running the system via Docker is the only way to evaluate the system locally without requiring you to pull the whole codebase, setup and build it yourself.
 
-> This is currently in alpha so expect a bugs!
+> This is currently in alpha so expect bugs!
 
 ## 1. Prerequisites (One-Time Setup)
 
