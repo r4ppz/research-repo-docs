@@ -16,9 +16,7 @@ This containerized setup is provided exclusively for distribution and local test
 
 - Download (.zip): [HERE](https://drive.google.com/file/d/1WIO9DtjvMK68WXbJ3gp3MxgoExX3Gsyp/view?usp=sharing)
 
-> This is not the whole codebase but a deployment package. The zip contains configuration files for running pre-built Docker images hosted remotely
-
-- The zip file will consist of two files:
+- The zip file will consist of two essential files:
     - `docker-compose.yml` (This will be used for pulling the application images)
     - `privileged-users.yaml` (This is where you will be managing your role)
 
@@ -46,7 +44,7 @@ The system uses your **Google Email** to determine what you see. By default, eve
 1. Open `privileged-users.yaml` in any text editor.
 2. Add your email address under the desired category.
 
-### To Apply Role Changes:
+#### To Apply Role Changes:
 
 Whenever you edit `privileged-users.yaml`, you **must restart** the backend to load the new permissions. Run this in your terminal:
 
