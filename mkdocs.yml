@@ -45,6 +45,9 @@ nav:
     - Database: database_migration.md
     - Testing: testing.md
 
+extra_javascript:
+    - js/open_in_new_tab.js
+
 markdown_extensions:
     - pymdownx.highlight:
           anchor_linenums: true

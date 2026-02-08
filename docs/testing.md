@@ -96,13 +96,13 @@ For more info on Docker, visit: [Docker Documentation](https://docs.docker.com/)
 
 ## How does this work?
 
-- Running docker `compose up -d` pulls the images from Docker Hub and starts the services defined in `docker-compose.yml` in the background.
+- Running Docker `compose up -d` pulls the images from Docker Hub and starts the services defined in `docker-compose.yml` in the background.
 - Services:
     - frontend: NGINX serving the frontend SPA
     - backend: Spring Boot API (business logic)
     - postgres: database storage
 - On first start, the backend creates an uploads/ folder. Uploaded PDF/DOCX files are saved there on disk. The database stores only the file path (not the binary).
-- Docker Compose does not pull the entire codebase. It retrieves and builds container images from a registry. Images contain the packaged/compiled application (e.g., binaries and dependencies), not the raw source code. For source code access, refer to the [frontend repository](https://github.com/r4ppz/research-repository), [backend is closed for now].
+- Docker compose does not pull the entire codebase. It retrieves and builds container images from a registry. Images contain the packaged/compiled application (e.g., binaries and dependencies), not the raw source code. For source code access, refer to the [frontend repository](https://github.com/r4ppz/research-repository), [backend is closed for now].
 
 ---
 
