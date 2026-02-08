@@ -7,7 +7,7 @@ This containerized setup is provided exclusively for distribution and local test
 ## 1. Prerequisites (One-Time Setup)
 
 - Download Docker and install for Windows: [Docker Desktop](https://www.docker.com/products/docker-desktop/).
-- Open the Docker Desktop app. Ensure Docker is running in the background for this to work.
+- Open and start the Docker Desktop application.
 
 > If you dont know how to download and set up docker watch youtube :p
 
@@ -26,6 +26,8 @@ This containerized setup is provided exclusively for distribution and local test
 - Unzip the zip file and enter the extracted folder
 - Right-click inside the folder and select **"Open in Terminal"** or **"Open command window here."**
 - Run the following command:
+
+<small style="color: gray;">note: docker must be running in the background.</small>
 
 ```bash
 docker compose up -d
@@ -100,6 +102,7 @@ For more info on Docker, visit: [Docker Documentation](https://docs.docker.com/)
     - backend: Spring Boot API (business logic)
     - postgres: database storage
 - On first start, the backend creates an uploads/ folder. Uploaded PDF/DOCX files are saved there on disk. The database stores only the file path (not the binary).
+- Docker Compose does not pull the entire codebase. It retrieves and builds container images from a registry. Images contain the packaged/compiled application (e.g., binaries and dependencies), not the raw source code. For source code access, refer to the [frontend repository](https://github.com/r4ppz/research-repository), [backend is closed for now].
 
 ---
 
