@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 site_name: 'Research Repository Documentation'
 
 repo_url: https://github.com/r4ppz/research-repo-docs
@@ -9,30 +10,38 @@ theme:
     language: en
 
     palette:
-        - media: '(prefers-color-scheme: light)'
+        - media: '(prefers-color-scheme: dark)'
           scheme: default
-          primary: sky blue
-          accent: sky blue
+          primary: indigo
+          accent: indigo
           toggle:
               icon: material/weather-sunny
               name: Switch to dark mode
         - media: '(prefers-color-scheme: dark)'
           scheme: slate
-          primary: sky blue
-          accent: sky blue
+          primary: indigo
+          accent: indigo
           toggle:
               icon: material/weather-night
               name: Switch to light mode
-          icon:
-              repo: fontawesome/brands/github
 
     features:
         - navigation.instant
         - navigation.tracking
         - navigation.top
+        - navigation.expand
+
+        - navigation.path
+        - navigation.sections
+
+        - content.code.copy
+        - content.code.annotate
+
+        - search.share
         - search.suggest
         - search.highlight
-        - content.code.copy
+
+        - toc.follow
 
 extra:
     generator: false
@@ -49,6 +58,8 @@ extra_javascript:
     - js/open_in_new_tab.js
 
 markdown_extensions:
+    - toc:
+          permalink: true
     - pymdownx.highlight:
           anchor_linenums: true
           line_spans: __span
