@@ -56,8 +56,8 @@ docker compose restart backend
 ### Why this manual?
 
 - The system does not handle sign-ups, only logins. So, to manage roles and permissions, this config file is required.
-- We are planning on implement a full authentication system in the future including sign-up/registration and UI/Frontend way to managing roles and permissions instead of this config file. But for now this is enough for simplicity.
-- If we hit prod before that feature, this file will be secured on the server and only developers or admins will be able to modify it.
+- In prod, this file will be secured on the server and only developers or admins will be able to modify it.
+- We will eventually implement a full authentication system in the **future** that includes sign-up/registration and a UI/frontend way to manage roles and permissions instead of this config file. But that's way too complicated and unnecessary; **for now**, this is enough for simplicity.
 
 > For more info about roles and capabilities, read: [Role and Capabilities](./specification.md#roles-capabilities)
 
