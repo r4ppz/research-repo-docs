@@ -13,7 +13,7 @@ This containerized setup is provided exclusively for distribution and local test
 
 ## 2. Download the Package
 
-- Download (.zip): [HERE](https://drive.google.com/file/d/1WIO9DtjvMK68WXbJ3gp3MxgoExX3Gsyp/view?usp=sharing)
+- Download (.zip): [HERE](https://drive.google.com/file/d/190NmKUffqQOoLnxyzB_-izJUTAFCARZ_/view?usp=sharing)
 
 - The zip file will consist of two essential files:
     - `docker-compose.yml` - This will be used for pulling the application images
