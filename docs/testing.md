@@ -96,7 +96,7 @@ For more info on Docker, visit: [Docker Documentation](https://docs.docker.com/)
 
 ## How does this work?
 
-- Running Docker `compose up -d` pulls the images from Docker Hub and starts the services defined in `docker-compose.yml` in the background.
+- Running Docker `compose up -d` pulls the images from Github registry and starts the services defined in `docker-compose.yml` in the background.
 - Services:
     - frontend: NGINX serving the frontend SPA
     - backend: Spring Boot API (business logic)

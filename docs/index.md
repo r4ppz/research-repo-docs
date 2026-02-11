@@ -61,7 +61,7 @@ Contact the maintainers via the repository [issues](https://github.com/r4ppz/res
 
 ## Branding and Intellectual Property
 
-The school’s name, logo, and all research papers hosted within this system are the property of the school. The MIT license applies strictly to the source code and documentation.
+The school’s name, logo, and all research papers hosted within this system are the property of the school. The [MIT license](https://mit-license.org/) applies strictly to the source code and documentation.
 
 The software is provided “as is”, without warranty of any kind, express or implied. The developers do not warrant that the system will be uninterrupted, error-free, or that data loss will not occur.
 
