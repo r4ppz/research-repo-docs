@@ -50,7 +50,6 @@ nav:
     - Home: index.md
     - Specification: specification.md
     - API Contract: api_contract.md
-    - API Contract (Improved): rest_api.md
     - Database: database_migration.md
     - Testing: testing.md
 

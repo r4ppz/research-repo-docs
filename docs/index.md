@@ -52,7 +52,7 @@ SPA with React and TypeScript.
 
 ## Contributing
 
-- Read [API contract](./rest_api.md) before implementing new frontend integrations.
+- Read [API contract](./api_contract.md) before implementing new frontend integrations.
 - Prefer small, focused pull requests that update docs and code together when applicable.
 
 Contact the maintainers via the repository [issues](https://github.com/r4ppz/research-repository/issues).
