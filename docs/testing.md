@@ -57,7 +57,7 @@ docker compose restart backend
 
 - The system does not handle sign-ups, only logins. So, to manage roles and permissions, this config file is required.
 - In prod, this file will be secured on the server and only developers or admins will be able to modify it.
-- We will eventually implement a full authentication system in the **future** that includes sign-up/registration and a UI/frontend way to manage roles and permissions instead of this config file. But that's way too complicated and unnecessary; **for now**, this is enough for simplicity.
+- We will eventually implement a full authentication system in the **future** that includes sign-up/registration and a UI/frontend way to manage roles and permissions instead of this config file. But that's way too [complicated and unnecessary](https://auth0.com/blog/building-account-systems/#1--Ideally--Don-t); **for now**, this is enough for simplicity.
 
 > For more info about roles and capabilities, read: [Role and Capabilities](./specification.md#roles-capabilities)
 
