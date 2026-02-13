@@ -2,7 +2,7 @@
 
 The Research Repository is a gated academic research portal where students can browse paper metadata, request access to full documents, and administrators review, manage papers and student requests.
 
-- [Frontend](https://github.com/r4ppz/research-repository), [backend](https://github.com/r4ppz/research-repository-backend) and [documentation](https://github.com/r4ppz/research-repo-docs) are open source — contributions are welcome.
+- [Frontend](https://github.com/r4ppz/research-repository), [backend](https://github.com/r4ppz/research-repository-backend) and [documentation](https://github.com/r4ppz/research-repo-docs) are all open source — contributions are welcome.
 
 > Note: This system is currently in alpha, which means the APIs are unstable, incomplete, and prone to bugs. A stable version (beta) will be released once the system is sufficiently usable.
 

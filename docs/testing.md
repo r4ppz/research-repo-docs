@@ -82,7 +82,7 @@ If the developers update the code, run these commands to perform a clean update:
 docker compose down -v
 
 # 2. Remove old images
-docker image rm r4ppzf/research-repo-backend:latest r4ppzf/research-repo-frontend:latest
+docker image rm ghcr.io/r4ppz/research-repository-backend:latest ghcr.io/r4ppz/research-repository-frontend:latest
 
 # 3. Pull the latest updates and restart
 docker compose pull
