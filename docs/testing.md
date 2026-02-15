@@ -23,7 +23,7 @@ The containerized version is provided exclusively for distribution and local tes
 
 ### 2. Download the Package
 
-- Download (.zip): [HERE](https://github.com/r4ppz/research-repo-deployment-package/commits/v0.1.0-alpha)
+- Download (.zip): [HERE](https://github.com/r4ppz/research-repo-deployment-package/archive/refs/tags/v0.1.0-alpha.zip)
 
 - The zip file will consist of two essential files:
     - `docker-compose.yml` - This will be used for pulling the application images
