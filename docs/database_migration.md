@@ -6,11 +6,13 @@
 - Partial unique index in `document_requests` to prevent duplicate `PENDING` or `ACCEPTED` requests for the same user/paper.
 - `SERIAL` is old but acceptable; maps easily in Java using `integer`.
 
-### Notes
+<!-- prettier-ignore-start -->
+!!! note
 
-- Every design change (new, fix, or improvement) must be documented (WHY).
-- In production, all schema changes must be versioned and applied via proper migration scripts.
-- In development, complete schema rewrites are allowed temporarily.
+    - Every design change (new, fix, or improvement) must be documented (WHY).
+    - In production, all schema changes must be versioned and applied via proper migration scripts.
+    - In development, complete schema rewrites are allowed temporarily.
+<!-- prettier-ignore-end -->
 
 ---
 

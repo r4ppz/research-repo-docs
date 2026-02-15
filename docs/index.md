@@ -4,18 +4,23 @@ The Research Repository is a gated academic research portal where students can b
 
 - [Frontend](https://github.com/r4ppz/research-repository), [backend](https://github.com/r4ppz/research-repository-backend) and [documentation](https://github.com/r4ppz/research-repo-docs) are all open source — contributions are welcome.
 
-> Note: This system is currently in alpha, which means the APIs are unstable, incomplete, and prone to bugs. A stable version (beta) will be released once the system is sufficiently usable.
+<!-- prettier-ignore-start -->
+!!! warning
+    This system is currently in alpha, which means the APIs are unstable, incomplete, and prone to bugs. A stable version (beta) will be released once the system is sufficiently usable.
 
-> We are student developers learning to design a reliable system. If you see a problem, security issue, architectural flaw, or anything else with our design, please [notify](https://github.com/r4ppz/research-repository/issues) us so we can improve. This is open source by choice so you can help us and also check the reliability of the system we are creating.
+!!! note
+    We are student developers learning to design a reliable system. If you see a problem, security issue, architectural flaw, or anything else with our design, please [notify](https://github.com/r4ppz/research-repository/issues) us so we can improve. This is open source by choice so you can help us and also check the reliability of the system we are creating.
 
-#### To try the system, see the [Testing page](testing.md) for instructions.
+!!! ready "Available for testing"
+    See the [Testing page](testing.md) for instructions.
+<!-- prettier-ignore-end -->
 
 ---
 
 ## Project status
 
 - Phase: **Alpha**
-- Maintenance: student-led project developed in spare time — feature timelines are informal
+- Maintenance: student-led project developed in spare time — **feature timelines are informal**
 
 ---
 

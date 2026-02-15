@@ -63,13 +63,14 @@ Whenever you edit `privileged-users.yaml`, you **must restart** the backend to l
 docker compose restart backend
 ```
 
-#### Why this manual?
+<!-- prettier-ignore-start -->
+!!! question "Why this manual?"
+    - The system does not handle sign-ups, only logins. So, to manage roles and permissions, this config file is required.
+    - In prod, this file will be secured on the server and only developers or admins will be able to modify it.
+    - We will eventually implement a full authentication system in the **future** that includes sign-up/registration and a UI/frontend way to manage roles and permissions instead of this config file. But that's way too [complicated and unnecessary](https://auth0.com/blog/building-account-systems/#1--Ideally--Don-t); **for now**, this is enough for simplicity.
 
-- The system does not handle sign-ups, only logins. So, to manage roles and permissions, this config file is required.
-- In prod, this file will be secured on the server and only developers or admins will be able to modify it.
-- We will eventually implement a full authentication system in the **future** that includes sign-up/registration and a UI/frontend way to manage roles and permissions instead of this config file. But that's way too [complicated and unnecessary](https://auth0.com/blog/building-account-systems/#1--Ideally--Don-t); **for now**, this is enough for simplicity.
-
-> For more info about roles and capabilities, read: [Role and Capabilities](./specification.md#roles-capabilities)
+     For more info about roles and capabilities, read: [Role and Capabilities](./specification.md#roles-capabilities)
+<!-- prettier-ignore-end -->
 
 ---
 
@@ -104,16 +105,17 @@ For more info on Docker, visit: [Docker Documentation](https://docs.docker.com/)
 
 ---
 
-## How does this work?
-
-- Running Docker `compose up -d` pulls the images from Github registry and starts the services defined in `docker-compose.yml` in the background.
-- Services:
-    - frontend: NGINX serving the frontend SPA
-    - backend: Spring Boot API (business logic)
-    - postgres: database storage
-- On first start, the backend creates an uploads/ folder. Uploaded PDF/DOCX files are saved there on disk. The database stores only the file path (not the binary).
-- Docker compose does not pull the entire codebase. It retrieves and builds container images from a registry. Images contain the packaged/compiled application (e.g., binaries and dependencies), not the raw source code.
-- For source code access, refer to the [research-repository](https://github.com/r4ppz/research-repository).
+<!-- prettier-ignore-start -->
+!!! question "How does this work?"
+    - Running Docker `compose up -d` pulls the images from Github registry and starts the services defined in `docker-compose.yml` in the background.
+    - Services:
+        - frontend: NGINX serving the frontend SPA
+        - backend: Spring Boot API (business logic)
+        - postgres: database storage
+    - On first start, the backend creates an uploads/ folder. Uploaded PDF/DOCX files are saved there on disk. The database stores only the file path (not the binary).
+    - Docker compose does not pull the entire codebase. It retrieves and builds container images from a registry. Images contain the packaged/compiled application (e.g., binaries and dependencies), not the raw source code.
+    - For source code access, refer to the [research-repository](https://github.com/r4ppz/research-repository).
+<!-- prettier-ignore-end -->
 
 ---
 
