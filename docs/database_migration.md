@@ -1,16 +1,16 @@
-## Design choices:
+## Design Choices
 
-- No enum since its hard to map java to postgres enum, it is handle in app layer
-- No second auto update timestamp, handle in app layer
-- Email validation handle in app layer
-- Partial unique index in document_requests to prevent duplicate PENDING or ACCEPTED requests for same user/paper
-- Serial is old but okay, map easily in Java using integer
+- No enum since it's hard to map Java to PostgreSQL enum; handled in the application layer.
+- No second auto-update timestamp; handled in the application layer.
+- Email validation handled in the application layer (frontend actually).
+- Partial unique index in `document_requests` to prevent duplicate `PENDING` or `ACCEPTED` requests for the same user/paper.
+- `SERIAL` is old but acceptable; maps easily in Java using `integer`.
 
-### Note
+### Notes
 
 - Every design change (new, fix, or improvement) must be documented (WHY).
-- In prod, all schema changes must be versioned and applied via proper migration scripts.
-- In dev, complete schema rewrites are allowed temporarily.
+- In production, all schema changes must be versioned and applied via proper migration scripts.
+- In development, complete schema rewrites are allowed temporarily.
 
 ---
 

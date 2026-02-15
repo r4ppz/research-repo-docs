@@ -6,26 +6,22 @@ This spec is intentionally detailed. It is the **single source of truth** for ba
 
 ## High-level Summary
 
-- **Purpose**: A gated school research repository where students can browse paper metadata, request access to full documents, and where admins manage papers and requests.
+The **Purpose** of the system is to serve as a gated school research repository where students can browse paper metadata, request access to full documents, and where admins manage papers and requests.
 
-- **Authentication**: Google SSO restricted to `@acdeducation.com`.
+**Authentication** is handled through Google SSO restricted to `@acdeducation.com`.
 
-- **Authorization**: Access tokens (JWT) with role-based access (STUDENT, TEACHER, DEPARTMENT_ADMIN, SUPER_ADMIN). Department scoping for DEPARTMENT_ADMIN applies only to admin operations (paper CRUD, request approvals); homepage browsing shows all departments.
-
-- **Data contract**: API returns UI-ready, nested objects (no raw IDs-only responses).
+**Authorization** uses access tokens (JWT) with role-based access (STUDENT, TEACHER, DEPARTMENT_ADMIN, SUPER_ADMIN). Department scoping for DEPARTMENT_ADMIN applies only to admin operations (paper CRUD, request approvals); homepage browsing shows all departments.
 
 - **File access**:
-    - Students: only if their request is ACCEPTED **and** the paper is not archived. Archived papers
-      are treated as unavailable and should result in HTTP 404 (`RESOURCE_NOT_AVAILABLE`).
-    - Teachers: only if their request is ACCEPTED **and** the paper is not archived. Archived papers
-      are treated as unavailable and should result in HTTP 404 (`RESOURCE_NOT_AVAILABLE`).
+    - Students and Teachers: only if their request is ACCEPTED **and** the paper is not archived. Archived papers
+      are treated as unavailable and should result in HTTP 404.
     - Admins: full access within their department (DEPARTMENT_ADMIN) or globally (SUPER_ADMIN).
 
 - **Archive feature**:
     - Papers can be archived/unarchived by admins.
     - Archived papers are hidden from students' library.
     - Archived papers are visible in teacher view (can see metadata but cannot request or download).
-    - Students with previously ACCEPTED requests cannot download archived papers; UI should badge "Archived".
+    - Students with previously ACCEPTED requests cannot download archived papers.
 
 ---
 
@@ -40,7 +36,7 @@ This spec is intentionally detailed. It is the **single source of truth** for ba
 
 ---
 
-### Page Access
+### Page Access (frontend)
 
 - **STUDENT**
     - LibraryPage (non-archived papers, all departments)
@@ -75,101 +71,79 @@ requirements, see the full [API Contract](./api_contract.md).
 
 ---
 
-## Data Privacy & Collection
-
-The system is designed with a "minimal data" approach to prioritize security and user privacy:
-
-- **Authentication:** Handled entirely via Google OAuth 2.0. The system **never** sees or stores user passwords.
-- **Identity:** We store only the user's Full Name, school email (`@acdeducation.com`), and Google profile picture URL.
-- **Academic Data:** Research metadata (Title, Author, Abstract, Department) and the uploaded PDF/DOCX files.
-- **Project Phase:** During this **Alpha** stage, data is for development purposes. Users should maintain original copies of all documents as data persistence is not yet guaranteed.
-
----
-
 ## AuthN/AuthZ
 
-- **Authentication (AuthN)**:
-    - Frontend obtains **Google OAuth authorization code** via Google Identity Services.
+### Authentication (AuthN)
 
-    - Backend exchanges the code for:
-        - Access token (JWT) - short-lived (60 minutes), returned in JSON body.
-        - Refresh token - long-lived (30 days), **returned in `httpOnly`, `Secure`,
-          `SameSite=Strict`, `Path=/api/auth/` cookie**.
+- Frontend obtains **Google OAuth authorization code** via Google Identity Services.
+- Backend exchanges the code for:
+    - Access token (JWT) - short-lived (60 minutes), returned in JSON body.
+    - Refresh token - long-lived (30 days), returned in `httpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/auth/` cookie.
+- Backend verifies the **Google ID token**:
+    - Signature, Issuer, Audience, Expiry.
+    - Domain enforced: must be `acdeducation.com`.
+    - Extracts user profile data: `email`, `name`, `picture` (from `profile` OAuth scope).
+- On first login, a new user record is created with:
+    - Default role: `STUDENT`.
+    - Profile picture URL from Google (extracted from ID token claims).
+    - Profile picture is stored as a URL string (not binary) to minimize storage and leverage Google's CDN.
 
-    - Backend verifies the **Google ID token**:
-        - Signature, Issuer, Audience, Expiry.
-        - Domain enforced: must be `acdeducation.com`.
-        - Extracts user profile data: `email`, `name`, `picture` (from `profile` OAuth scope).
+### Token Refresh Flow (Cookie-Based)
 
-    - On first login, a new user record is created with:
-        - Default role: `STUDENT`
-        - Profile picture URL from Google (extracted from ID token claims)
-        - Profile picture is stored as a URL string (not binary) to minimize storage and leverage Google's CDN
+- When access token expires, frontend calls `/api/auth/refresh`.
+- Browser automatically attaches the `refreshToken` cookie (no manual storage in React).
+- Backend validates refresh token against database records (checks expiration).
+- If a refresh token is used again (e.g., due to network issues), the server returns 401 Unauthorized and the client redirects to login.
+- Backend generates new access token and new refresh token.
+- **Rotation:** Old refresh token is revoked; new refresh token is sent via a new `Set-Cookie` header.
+- New access token is returned in JSON body.
+- **Note:** `/api/auth/refresh` is a public endpoint (no JWT required) but requires the `refreshToken` to be present in an `HttpOnly` cookie. Browsers attach the cookie automatically; the frontend must never attempt to read or store the refresh token directly.
 
-- **Token Refresh Flow (Cookie-Based)**:
-    - When access token expires, frontend calls `/api/auth/refresh`.
-    - **Browser automatically attaches the `refreshToken` cookie** (no manual storage in React).
-    - Backend validates refresh token against database records (checks expiration).
-    - If a refresh token is used again (e.g., due to network issues), the server returns 401 Unauthorized and the client redirects to login.
-    - Backend generates new access token and new refresh token.
-    - **Rotation:** Old refresh token is revoked; new refresh token is sent via a new `Set-Cookie` header.
-    - New access token is returned in JSON body.
-    - **Note:** `/api/auth/refresh` is a public endpoint (no JWT required) but it does require the `refreshToken` to be present in an `HttpOnly` cookie. Browsers attach the cookie automatically; the frontend must never attempt to read or store the refresh token directly.
+### Logout Flow
 
-- **Logout Flow**:
-    - Frontend calls `/api/auth/logout`.
-    - **Browser automatically attaches the `refreshToken` cookie**.
-    - Backend finds the token in the database and deletes it (server-side revocation).
-    - Backend responds with a `Set-Cookie` header that overwrites the cookie with an immediate
-      expiration (`Max-Age=0`), clearing it from the browser.
-    - **Note:** `/api/auth/logout` is also public (no JWT required) but requires the `refreshToken` cookie
-      to locate and revoke the token server-side. The frontend must never attempt to read or store the
-      refresh token directly.
+- Frontend calls `/api/auth/logout`.
+- Browser automatically attaches the `refreshToken` cookie.
+- Backend finds the token in the database and deletes it (server-side revocation).
+- Backend responds with a `Set-Cookie` header that overwrites the cookie with an immediate expiration (`Max-Age=0`), clearing it from the browser.
+- **Note:** `/api/auth/logout` is also public (no JWT required) but requires the `refreshToken` cookie to locate and revoke the token server-side. The frontend must never attempt to read or store the refresh token directly.
 
-- **Manual Role Assignment**:
-    - Privileged roles (Teacher, Admin) are managed on the backend. Contact the devs to request changes.
-    - When a user logs in via Google SSO, the system checks their email against this configuration to determine their role and assigned department (if applicable).
-    - If the email is not found in the configuration, the user is assigned the default `STUDENT` role.
-    - Any changes to privileged roles may require a service restart or a fresh login by the user.
+### Manual Role Assignment
 
-- **Access Token Structure (JWT)**:
-    - **Claims**: `sub` (userId), `email`, `fullName`, `role`, `departmentId`, `profilePictureUrl` ,`iat`, `exp`, `iss`.
-    - Lifetime: 60 minutes.
-    - Backend uses `sub` for all RBAC/ABAC queries.
+- Privileged roles (Teacher, Admin) are managed on the backend using a configuration file.
+- When a user logs in via Google SSO, the system checks their email against this configuration to determine their role and assigned department.
+- If the email is not found in the configuration, the user is assigned the default `STUDENT` role.
+- Any changes to privileged roles may require a service restart or a fresh login by the user.
 
-- **Refresh Token**:
-    - Opaque, unique string stored in database.
-    - Lifetime: 30 days.
-    - **Transport:** Strictly `httpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/auth/` cookie
-      (never in JSON body).
-    - Primary security relies on expiration + rotation.
+### Access Token Structure (JWT)
 
-- **Authorization (AuthZ)**:
-    - Spring Security + service-layer enforcement.
-    - File access rules strictly enforced on backend (Student/Teacher require `ACCEPTED` request +
-      non-archived paper).
+- **Claims**: `sub` (userId), `email`, `fullName`, `role`, `departmentId`, `profilePictureUrl`, `iat`, `exp`, `iss`.
+- Lifetime: 60 minutes.
+- Backend uses `sub` for all RBAC/ABAC queries.
+
+### Refresh Token
+
+- Opaque, unique string stored in database.
+- Lifetime: 30 days.
+- **Transport:** Strictly `httpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/auth/` cookie (never in JSON body).
+- Primary security relies on expiration + rotation.
+
+### Authorization (AuthZ)
+
+- Spring Security + service-layer enforcement.
+- File access rules strictly enforced on backend.
 
 ---
 
 ## File Storage Handling
 
-- **Local Filesystem:** PDF files are stored directly on the server's local filesystem using Java File I/O operations.
-- **Docker Volume Mount:** A host directory is mounted to the container (e.g., `-v /opt/repo/data:/app/uploads`) to persist files across container restarts.
-- **Reliability:** Files are tied to the physical server; proper backup strategy (e.g., cron job with rsync) is essential for disaster recovery.
-- **Database Design:** The `file_path` column stores only the relative file path (e.g., `2023/dept_cs/paper_123.pdf`) rather than full API paths. The complete URL is constructed dynamically in the DTO/Mapper layer.
+PDF files are stored directly on the server's local filesystem using Docker bind. A host directory is mounted to the container (e.g., `-v /opt/repo/data:/app/uploads`) to persist files across container restarts. Files are tied to the physical server; proper backup strategy (worry later) is essential for disaster recovery.
+
+The `file_path` column stores only the relative file path (e.g., `2023/dept_cs/paper_123.pdf`) rather than full API paths. The database does not store file binary but just the path. The complete URL is constructed dynamically in the DTO/Mapper layer.
 
 ---
 
-## Security
+## Data Privacy & Collection
 
-- **HTTPS** required (Cookies must be `Secure`).
-- **CORS**: Dev allowed; Prod strict.
-- **Cookies**: `HttpOnly`, `Secure`, `SameSite=Strict` (Mitigates XSS and CSRF).
-- **Rate limiting**: Handled at the proxy layer (API gateway or reverse proxy). The proxy should
-  rate-limit high-risk endpoints (login, create-request, refresh) and return standard HTTP 429
-  responses with `Retry-After` when applicable.
-- **Database constraint**: Partial unique index prevents duplicate PENDING/ACCEPTED requests for
-  same user/paper, solving race condition issues.
-- **File validation**: MIME + size limits (20MB).
-- **Logging**: Audit decisions including token refresh attempts.
-- **Refresh token rotation**: New token issued on every use; old token invalidated.
+The system is designed with a **minimal data** approach to prioritize security and user privacy:
+
+The system handles authentication entirely via [Google OAuth 2.0](https://dev.to/yaswanth_bonumaddi/understanding-google-oauth-20-57fn), ensuring that the system **never** sees or stores user passwords. For **identity**, we store only the user's Full Name, school email (`@acdeducation.com`), and Google profile picture URL. Academic data includes research metadata such as Title, Author, Abstract, and Department, along with the uploaded PDF/DOCX files.
