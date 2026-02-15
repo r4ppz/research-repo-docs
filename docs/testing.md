@@ -1,19 +1,29 @@
-# Testing - Setup & User Guide
+# How to test the system
 
-This containerized setup is provided exclusively for distribution and local testing. There is no server yet, so in order to test it out, running the system via Docker is the only way to evaluate the system locally without requiring you to pull the whole codebase, setup and build it yourself.
+The system is available for testing but since there is no server yet, you have three options:
 
-> This is currently in alpha so expect bugs!
+1. Ask the developers to temporarily run the backend on their hardware to support your session and access the [SPA Frontend](https://r4ppz.github.io/research-repository-frontend/) hosted on GitHub Pages.
+2. Pull the [whole codebase](https://github.com/r4ppz/research-repository) and run everything locally (_not recommended unless your a dev_)
+3. Use the containerized version of the system and run everything locally using Docker. (_preferred_)
 
-## 1. Prerequisites (One-Time Setup)
+> ⚠️ The system is currently in alpha. Bugs and instability are expected.
+
+---
+
+## Containerized version:
+
+The containerized version is provided exclusively for distribution and local testing. Running the system via Docker is the only way to evaluate the system locally without requiring you to pull the whole codebase, setup and build it yourself.
+
+### 1. Prerequisites (One-Time Setup)
 
 - Download Docker and install for Windows: [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 - Open and start the Docker Desktop application.
 
 > If you dont know how to download and set up docker watch youtube :p
 
-## 2. Download the Package
+### 2. Download the Package
 
-- Download (.zip): [HERE](https://drive.google.com/file/d/190NmKUffqQOoLnxyzB_-izJUTAFCARZ_/view?usp=sharing)
+- Download (.zip): [HERE](https://github.com/r4ppz/research-repo-deployment-package/commits/v0.1.0-alpha)
 
 - The zip file will consist of two essential files:
     - `docker-compose.yml` - This will be used for pulling the application images
@@ -21,7 +31,7 @@ This containerized setup is provided exclusively for distribution and local test
 
 ---
 
-## 3. Running the System
+### 3. Running the System
 
 - Unzip the zip file and enter the extracted folder
 - Right-click inside the folder and select **"Open in Terminal"** or **"Open command window here."**
@@ -38,7 +48,7 @@ docker compose up -d
 
 ---
 
-## 4. Managing User Roles (Admin/Teacher/Student)
+### 4. Managing User Roles (Admin/Teacher/Student)
 
 The system uses your **Google Email** to determine what you see. By default, everyone is a **Student**. To test roles and capabilities you must edit the config file manually.
 
@@ -53,7 +63,7 @@ Whenever you edit `privileged-users.yaml`, you **must restart** the backend to l
 docker compose restart backend
 ```
 
-### Why this manual?
+#### Why this manual?
 
 - The system does not handle sign-ups, only logins. So, to manage roles and permissions, this config file is required.
 - In prod, this file will be secured on the server and only developers or admins will be able to modify it.
@@ -63,7 +73,7 @@ docker compose restart backend
 
 ---
 
-## 6. Control Commands
+### 6. Control Commands
 
 | Action         | Command                  | Description                                                 |
 | -------------- | ------------------------ | ----------------------------------------------------------- |
@@ -73,7 +83,7 @@ docker compose restart backend
 | **Shutdown**   | `docker compose down`    | Fully stops and removes the temporary containers.           |
 | **Full Reset** | `docker compose down -v` | Deletes all uploaded papers and drop database. (clean data) |
 
-## 7. Updating to the Latest Version
+### 7. Updating to the Latest Version
 
 If the developers update the code, run these commands to perform a clean update:
 

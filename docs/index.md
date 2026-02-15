@@ -8,7 +8,7 @@ The Research Repository is a gated academic research portal where students can b
 
 > We are student developers learning to design a reliable system. If you see a problem, security issue, architectural flaw, or anything else with our design, please [notify](https://github.com/r4ppz/research-repository/issues) us so we can improve. This is open source by choice so you can help us and also check the reliability of the system we are creating.
 
-The system is ready for testing, but because there is no dedicated server yet, you have to ask the devs to run the backend on their hardware to support your session and visit the [SPA Frontend](https://r4ppz.github.io/research-repository/) hosted on GitHub pages. Alternatively, you can use the containerized version (.zip file) of the system and run everything locally. **See the [Testing page](./testing.md) for more info**
+#### To try the system, see the [Testing page](testing.md) for instructions.
 
 ---
 
