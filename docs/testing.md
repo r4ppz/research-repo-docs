@@ -103,12 +103,7 @@ For more info on Docker, visit: [Docker Documentation](https://docs.docker.com/)
     - postgres: database storage
 - On first start, the backend creates an uploads/ folder. Uploaded PDF/DOCX files are saved there on disk. The database stores only the file path (not the binary).
 - Docker compose does not pull the entire codebase. It retrieves and builds container images from a registry. Images contain the packaged/compiled application (e.g., binaries and dependencies), not the raw source code.
-- For source code access, refer to the [frontend](https://github.com/r4ppz/research-repository) and [backend](https://github.com/r4ppz/research-repository-backend) repository. You can pull the whole codebase if you want:
-
-```bash
-git clone https://github.com/r4ppz/research-repository-frontend
-git clone https://github.com/r4ppz/research-repository-backend
-```
+- For source code access, refer to the [research-repository](https://github.com/r4ppz/research-repository).
 
 ---
 
