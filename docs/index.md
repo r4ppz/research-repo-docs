@@ -64,10 +64,10 @@ Contact the maintainers via the repository [issues](https://github.com/r4ppz/res
 
 ---
 
-## Branding and Intellectual Property
+## Branding and Licensing
 
-The school’s name, logo, and all research papers hosted within this system are the property of the school. The [MIT license](https://mit-license.org/) applies strictly to the source code and documentation.
+The school’s name, logo, and all research papers in this system are the property of the school and are **not** covered by the open-source license. You may not use these materials without the school’s permission.
 
-The software is provided “as is”, without warranty of any kind, express or implied. The developers do not warrant that the system will be uninterrupted, error-free, or that data loss will not occur.
+The **source code** (backend and frontend) and documentation are licensed under the [MIT License](https://github.com/r4ppz/research-repository-frontend/blob/main/LICENSE). This means you’re free to use, copy, modify, and share the code, as long as the license notice is included.
 
-In no event shall the developers be liable for any direct, indirect, incidental, or consequential damages (including, but not limited to, loss of data, database corruption, or system downtime) arising out of the use or inability to use the system, even if advised of the possibility of such damage.
+The software is provided **“as is”**, and the developers **are not responsible** for any problems, including but not limited to server errors, data loss, or other issues that may occur while using it.
