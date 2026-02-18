@@ -52,6 +52,7 @@ nav:
     - API Contract: api_contract.md
     - Database: database_migration.md
     - Testing: testing.md
+    - Contribute: contribute.md
 
 extra_javascript:
     - js/open_in_new_tab.js

@@ -44,7 +44,7 @@ docker compose up -d
 
 ```
 
-- Open your web browser and navigate to [http://localhost](http://localhost).
+- Click this --> [http://localhost](http://localhost).
 
 ---
 
@@ -64,12 +64,10 @@ docker compose restart backend
 ```
 
 <!-- prettier-ignore-start -->
-!!! question "Why this manual?"
-    - The system does not handle sign-ups, only logins. So, to manage roles and permissions, this config file is required.
-    - In prod, this file will be secured on the server and only developers or admins will be able to modify it.
-    - We will eventually implement a full authentication system in the **future** that includes sign-up/registration and a UI/frontend way to manage roles and permissions instead of this config file. But that's way too [complicated and unnecessary](https://auth0.com/blog/building-account-systems/#1--Ideally--Don-t); **for now**, this is enough for simplicity.
+!!! warning "For more info about this"
+    Please read [Manual Role Assinment](./specification.md#manual-role-assignment)
 
-     For more info about roles and capabilities, read: [Role and Capabilities](./specification.md#roles-capabilities)
+    and [Role and Capabilities](./specification.md#roles-capabilities-authz).
 <!-- prettier-ignore-end -->
 
 ---

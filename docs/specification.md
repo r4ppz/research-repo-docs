@@ -1,6 +1,4 @@
-# Research Repository — Architecture & Implementation Spec
-
-This spec is intentionally detailed. It is the **single source of truth** for backend and frontend data design, API contracts, and authorization logic. All changes must be documented here first, then implemented.
+# Architecture & Implementation Spec
 
 ---
 
@@ -10,22 +8,22 @@ The **Purpose** of the system is to serve as a gated school research repository 
 
 **Authentication** is handled through Google SSO restricted to `@acdeducation.com`.
 
-**Authorization** uses access tokens (JWT) with role-based access (STUDENT, TEACHER, DEPARTMENT_ADMIN, SUPER_ADMIN). Department scoping for DEPARTMENT_ADMIN applies only to admin operations (paper CRUD, request approvals); homepage browsing shows all departments.
+**Authorization** uses access tokens (`JWT`) with role-based access (`STUDENT`, `TEACHER`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`). Department scoping for `DEPARTMENT_ADMIN` applies only to admin operations (paper CRUD, request approvals); homepage browsing shows all departments.
 
 - **File access**:
-    - Students and Teachers: only if their request is ACCEPTED **and** the paper is not archived. Archived papers
-      are treated as unavailable and should result in HTTP 404.
-    - Admins: full access within their department (DEPARTMENT_ADMIN) or globally (SUPER_ADMIN).
+    - Students and Teachers: only if their request is `ACCEPTED` **and** the paper is not archived. Archived papers
+      are treated as unavailable and should result in `HTTP 404`.
+    - Admins: full access within their department (`DEPARTMENT_ADMIN`) or globally (`SUPER_ADMIN`).
 
 - **Archive feature**:
     - Papers can be archived/unarchived by admins.
     - Archived papers are hidden from students' library.
     - Archived papers are visible in teacher view (can see metadata but cannot request or download).
-    - Students with previously ACCEPTED requests cannot download archived papers.
+    - Students with previously `ACCEPTED` requests cannot download archived papers.
 
 ---
 
-## Roles & Capabilities
+## Roles & Capabilities (AuthZ)
 
 | Role             | Department | Can View Metadata                               | Can Download/View PDF                           | Can CRUD Papers             | Can Approve/Reject Requests                 |
 | ---------------- | ---------- | ----------------------------------------------- | ----------------------------------------------- | --------------------------- | ------------------------------------------- |
@@ -71,9 +69,21 @@ requirements, see the full [API Contract](./api_contract.md).
 
 ---
 
-## AuthN/AuthZ
+## File Storage Handling
 
-### Authentication (AuthN)
+PDF files are stored directly on the server's local filesystem using Docker bind. A host directory is mounted to the container to persist files across container restarts. Files are tied to the physical server; proper backup strategy is essential for disaster recovery (dont have a plan yet).
+
+The `file_path` column stores only the relative file path rather than full API paths. The database does **not** store file binary but just the path. The complete URL is constructed dynamically in the DTO/Mapper layer.
+
+---
+
+## Data Privacy & Collection
+
+The system handles authentication entirely via [Google OAuth 2.0](https://dev.to/yaswanth_bonumaddi/understanding-google-oauth-20-57fn), ensuring that the system **never** sees or stores user passwords. For **identity**, we store only the user's name, email, and Google profile picture URL from the Google Account that the user agreed to use (`@acdeducation.com`).
+
+Academic data includes research metadata such as Title, Author, Abstract, and Department, along with the uploaded PDF/DOCX binary files.
+
+## Authentication (AuthN)
 
 - Frontend obtains **Google OAuth authorization code** via Google Identity Services.
 - Backend exchanges the code for:
@@ -107,13 +117,6 @@ requirements, see the full [API Contract](./api_contract.md).
 - Backend responds with a `Set-Cookie` header that overwrites the cookie with an immediate expiration (`Max-Age=0`), clearing it from the browser.
 - **Note:** `/api/auth/logout` is also public (no JWT required) but requires the `refreshToken` cookie to locate and revoke the token server-side. The frontend must never attempt to read or store the refresh token directly.
 
-### Manual Role Assignment
-
-- Privileged roles (Teacher, Admin) are managed on the backend using a configuration file.
-- When a user logs in via Google SSO, the system checks their email against this configuration to determine their role and assigned department.
-- If the email is not found in the configuration, the user is assigned the default `STUDENT` role.
-- Any changes to privileged roles may require a service restart or a fresh login by the user.
-
 ### Access Token Structure (JWT)
 
 - **Claims**: `sub` (userId), `email`, `fullName`, `role`, `departmentId`, `profilePictureUrl`, `iat`, `exp`, `iss`.
@@ -127,23 +130,21 @@ requirements, see the full [API Contract](./api_contract.md).
 - **Transport:** Strictly `httpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/auth/` cookie (never in JSON body).
 - Primary security relies on expiration + rotation.
 
-### Authorization (AuthZ)
+### Manual Role Assignment
 
-- Spring Security + service-layer enforcement.
-- File access rules strictly enforced on backend.
+Privileged roles (`TEACHER`, `SUPER_ADMIN`, `DEPARTMENT_ADMIN`) are managed on the backend using a configuration file.
+When a user logs in via Google SSO, the system checks their email against this config file to determine their role and assigned department.
+If not included/configured, the user is assigned the default `STUDENT` role.
 
----
+The system does not handle sign-ups, only logins. So, in order to manage roles & permissions, this config file is needed.
 
-## File Storage Handling
+Roles listed in this file can bypass the email restriction `@acdeducation.com`.
+This is because we dont know if they even have a `@acdeducation.com` account like students.
 
-PDF files are stored directly on the server's local filesystem using Docker bind. A host directory is mounted to the container (e.g., `-v /opt/repo/data:/app/uploads`) to persist files across container restarts. Files are tied to the physical server; proper backup strategy (worry later) is essential for disaster recovery.
+In production, this file will be secured on the server and only developers or admins will be able to modify it.
+Any changes to the config file may require a service restart or a fresh login by the user.
 
-The `file_path` column stores only the relative file path (e.g., `2023/dept_cs/paper_123.pdf`) rather than full API paths. The database does not store file binary but just the path. The complete URL is constructed dynamically in the DTO/Mapper layer.
+We will eventually implement a full authentication system in the **future** that includes sign-up/registration and a UI/frontend way to manage roles & permissions instead of this config file.
+But that's way too [complicated and unnecessary](https://auth0.com/blog/building-account-systems/#1--Ideally--Don-t); **for now**, this is enough for simplicity.
 
----
-
-## Data Privacy & Collection
-
-The system is designed with a **minimal data** approach to prioritize security and user privacy:
-
-The system handles authentication entirely via [Google OAuth 2.0](https://dev.to/yaswanth_bonumaddi/understanding-google-oauth-20-57fn), ensuring that the system **never** sees or stores user passwords. For **identity**, we store only the user's Full Name, school email (`@acdeducation.com`), and Google profile picture URL. Academic data includes research metadata such as Title, Author, Abstract, and Department, along with the uploaded PDF/DOCX files.
+> If you worry about the security about how we manage roles & permission. You can PR or ISSUE for a better alternative through our [github](https://github.com/r4ppz/research-repo-docs/issues). Note that making a _complete auth system_ is beyond our current skillset.
