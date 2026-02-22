@@ -44,7 +44,7 @@ docker compose up -d
 
 ```
 
-- Click this --> [http://localhost](http://localhost).
+- Open a new browser tab and go to --> [http://localhost](http://localhost).
 
 ---
 

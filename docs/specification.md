@@ -134,12 +134,12 @@ Academic data includes research metadata such as Title, Author, Abstract, and De
 
 Privileged roles (`TEACHER`, `SUPER_ADMIN`, `DEPARTMENT_ADMIN`) are managed on the backend using a configuration file.
 When a user logs in via Google SSO, the system checks their email against this config file to determine their role and assigned department.
-If not included/configured, the user is assigned the default `STUDENT` role.
+If not included or configured, the user is assigned the default `STUDENT` role.
 
 The system does not handle sign-ups, only logins. So, in order to manage roles & permissions, this config file is needed.
 
 Roles listed in this file can bypass the email restriction `@acdeducation.com`.
-This is because we dont know if they even have a `@acdeducation.com` account like students.
+This is because we don't know if they even have a `@acdeducation.com` account like students do.
 
 In production, this file will be secured on the server and only developers or admins will be able to modify it.
 Any changes to the config file may require a service restart or a fresh login by the user.
@@ -147,4 +147,4 @@ Any changes to the config file may require a service restart or a fresh login by
 We will eventually implement a full authentication system in the **future** that includes sign-up/registration and a UI/frontend way to manage roles & permissions instead of this config file.
 But that's way too [complicated and unnecessary](https://auth0.com/blog/building-account-systems/#1--Ideally--Don-t); **for now**, this is enough for simplicity.
 
-> If you worry about the security about how we manage roles & permission. You can PR or ISSUE for a better alternative through our [github](https://github.com/r4ppz/research-repo-docs/issues). Note that making a _complete auth system_ is beyond our current skillset.
+> If you worry about the security of how we manage roles & permissions, you can PR or issue for a better alternative through our [GitHub](https://github.com/r4ppz/research-repo-docs/issues). Note that making a _complete authentication system_ is beyond our current skillset.

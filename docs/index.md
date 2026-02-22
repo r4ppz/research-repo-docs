@@ -1,7 +1,6 @@
 # Research Repository System
 
-This is the documentation site for the school project **Research Repository System**. This will include all the
-information about the system (future plan, current state, API contract, logic, etc.). Every change to the system will be documented here first.
+This is the documentation site for the school project **Research Repository System**. It includes all information about the system (future plans, current state, API contract, logic, etc.). Every change to the system will be documented here first.
 
 The **Research Repository** is a gated academic research portal where students can browse paper metadata, request access to full documents, and administrators review, manage papers and student requests.
 
@@ -34,7 +33,7 @@ The **Research Repository** is a gated academic research portal where students c
 
 RESTful API with Java 21 and Spring Boot.
 
-> see [pom.xml](https://github.com/r4ppz/research-repository-backend/blob/main/pom.xml) for more accurate info.
+> Dependencies and exact versions are defined in [pom.xml](https://github.com/r4ppz/research-repository-backend/blob/main/pom.xml).
 
 - Framework: Spring Boot 3
 - Build: Maven
@@ -47,7 +46,7 @@ RESTful API with Java 21 and Spring Boot.
 
 SPA with React and TypeScript.
 
-> see [package.json](https://github.com/r4ppz/research-repository-frontend/blob/main/package.json) for more accurate info.
+> Dependencies and exact versions are defined in [package.json](https://github.com/r4ppz/research-repository-frontend/blob/main/package.json).
 
 - Framework: React 19 (with compiler)
 - Build: Vite
@@ -61,9 +60,9 @@ SPA with React and TypeScript.
 
 ### [Documentation](https://github.com/r4ppz/research-repo-docs)
 
-> see [requirements.txt](https://github.com/r4ppz/research-repo-docs/blob/main/requirements.txt) for more accurate info.
+> Dependencies and exact versions are defined in [requirements.txt](https://github.com/r4ppz/research-repo-docs/blob/main/requirements.txt).
 
-- Framework: Mkdocs
+- Site Generator: MkDocs
 - Format: Markdown
 - Deployment: Github Pages via GitHub Actions
 

@@ -121,7 +121,7 @@ VALUES
 !!! warning "MOCKS"
     These are mocks or fake data.
     **This is what you see when testing the system**. Its not exactly hardcoded but just an sql script.
-    Note that these are just meta data and have no files asscociated with it.
+    Note that these are just meta-data and have no files associated with it.
 
 <!-- prettier-ignore-end -->
 
