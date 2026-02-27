@@ -53,17 +53,24 @@ nav:
     - Database: database_migration.md
     - Testing: testing.md
     - Contribute: contribute.md
+    - Plans: future_plans.md
 
 extra_javascript:
     - js/open_in_new_tab.js
 
 markdown_extensions:
+    - pymdownx.tasklist:
+          custom_checkbox: true
+          clickable_checkbox: false
+
     - toc:
           permalink: true
+
     - pymdownx.highlight:
           anchor_linenums: true
           line_spans: __span
           pygments_lang_class: true
+
     - pymdownx.inlinehilite
     - pymdownx.snippets
     - pymdownx.superfences
