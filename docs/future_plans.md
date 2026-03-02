@@ -10,5 +10,6 @@
 - [ ] Add WebSocket or SSE to notify users of backend resource changes.
 - [ ] Complete authentication system; integrate OLSIS if possible.
 - [ ] Implement full CI/CD pipelines, including Docker deployments.
-- [ ] Set up Git hooks on frontend and backend for consistent formatting.
+- [ ] Set up Git hooks on frontend and backend for consistent rules.
 - [ ] Extend notifications via email, building on webhook/SSE implementation.
+- [ ] Improve Github Templates and Actions (workflow).
