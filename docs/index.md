@@ -4,7 +4,7 @@ This is the documentation site for the school project **Research Repository Syst
 
 The **Research Repository** is a gated academic research portal where students can browse paper metadata, request access to full documents, and administrators review, manage papers and student requests.
 
-- [Frontend](https://github.com/r4ppz/research-repository), [backend](https://github.com/r4ppz/research-repository-backend) and [documentation](https://github.com/r4ppz/research-repo-docs) are all open source — [contributions](./contribute.md) are welcome.
+- [Frontend](https://github.com/r4ppz/research-repository-frontend), [backend](https://github.com/r4ppz/research-repository-backend) and [documentation](https://github.com/r4ppz/research-repo-docs) are all open source — [contributions](./contribute.md) are welcome.
 
 <!-- prettier-ignore-start -->
 !!! question "Available for testing!"
