@@ -70,8 +70,8 @@ SPA with React and TypeScript.
 
 ## Branding and Licensing
 
-The **source code** (backend and frontend) and documentation are licensed under the [MIT License](https://github.com/r4ppz/research-repository-frontend/blob/main/LICENSE). This means you’re free to use, copy, modify, and share the code, as long as the license notice is included.
+The **source code** (backend, frontend) and documentation are licensed under the [MIT License](https://github.com/r4ppz/research-repository-frontend/blob/main/LICENSE). You may use, copy, modify, and distribute the code in accordance with the terms of that license.
 
-The school’s name, logo, and all research papers in this system are the property of the school and are **not** covered by the open-source license.
+The school's name, logo, trademarks, and all research papers or uploaded content within the system are the exclusive property of the school and their respective authors. These materials are not covered by the MIT License and may not be used, reproduced, or redistributed without permission.
 
-The software is provided **as is**, and the developers **are not responsible** for any problems, including but not limited to server errors, data loss, or other issues that may occur while using it.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. The developers shall not be liable for any damages arising from the use of this software.
