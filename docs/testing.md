@@ -48,7 +48,7 @@ docker compose up -d
 
 ---
 
-### 4. Managing User Roles (Admin/Teacher/Student)
+### 4. Managing User Roles (Admin/Faculty/Student)
 
 The system uses your **Google Email** to determine what you see. By default, everyone is a **Student**. To test roles and capabilities you must edit the config file manually.
 
