@@ -8,17 +8,17 @@ The **Purpose** of the system is to serve as a gated school research repository 
 
 **Authentication** is handled through Google SSO restricted to `@acdeducation.com`.
 
-**Authorization** uses access tokens (`JWT`) with role-based access (`STUDENT`, `TEACHER`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`). Department scoping for `DEPARTMENT_ADMIN` applies only to admin operations (paper CRUD, request approvals); homepage browsing shows all departments.
+**Authorization** uses access tokens (`JWT`) with role-based access (`STUDENT`, `FACULTY`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN`). Department scoping for `DEPARTMENT_ADMIN` applies only to admin operations (paper CRUD, request approvals); homepage browsing shows all departments.
 
 - **File access**:
-    - Students and Teachers: only if their request is `ACCEPTED` **and** the paper is not archived. Archived papers
+    - Students and Faculty: only if their request is `ACCEPTED` **and** the paper is not archived. Archived papers
       are treated as unavailable and should result in `HTTP 404`.
     - Admins: full access within their department (`DEPARTMENT_ADMIN`) or globally (`SUPER_ADMIN`).
 
 - **Archive feature**:
     - Papers can be archived/unarchived by admins.
     - Archived papers are hidden from students' library.
-    - Archived papers are visible in teacher view (can see metadata but cannot request or download).
+    - Archived papers are visible in faculty view (can see metadata but cannot request or download).
     - Students with previously `ACCEPTED` requests cannot download archived papers.
 
 ---
@@ -28,7 +28,7 @@ The **Purpose** of the system is to serve as a gated school research repository 
 | Role             | Department | Can View Metadata                               | Can Download/View PDF                           | Can CRUD Papers             | Can Approve/Reject Requests                 |
 | ---------------- | ---------- | ----------------------------------------------- | ----------------------------------------------- | --------------------------- | ------------------------------------------- |
 | STUDENT          | null       | All non-archived papers, all departments        | Only if request ACCEPTED and paper not archived | No                          | No                                          |
-| TEACHER          | null       | All papers, including archived, all departments | Only if request ACCEPTED and paper not archived | No                          | No                                          |
+| FACULTY          | null       | All papers, including archived, all departments | Only if request ACCEPTED and paper not archived | No                          | No                                          |
 | DEPARTMENT_ADMIN | Required   | All papers, including archived, all departments | Full for their department                       | Full for their department   | Approve/reject requests in their department |
 | SUPER_ADMIN      | null       | All papers, including archived, all departments | Full across all departments                     | Full across all departments | Full across all departments                 |
 
@@ -40,7 +40,7 @@ The **Purpose** of the system is to serve as a gated school research repository 
     - LibraryPage (non-archived papers, all departments)
     - RequestPage → Own requests
 
-- **TEACHER**
+- **FACULTY**
     - LibraryPage (all papers metadata, all departments)
     - RequestPage → Own requests
 
@@ -132,7 +132,7 @@ Academic data includes research metadata such as Title, Author, Abstract, and De
 
 ### Manual Role Assignment
 
-Privileged roles (`TEACHER`, `SUPER_ADMIN`, `DEPARTMENT_ADMIN`) are managed on the backend using a configuration file.
+Privileged roles (`FACULTY`, `SUPER_ADMIN`, `DEPARTMENT_ADMIN`) are managed on the backend using a configuration file.
 When a user logs in via Google SSO, the system checks their email against this config file to determine their role and assigned department.
 If not included or configured, the user is assigned the default `STUDENT` role.
 

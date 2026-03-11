@@ -120,7 +120,7 @@ All error responses **MUST** conform to this structure:
 | Role             | Department | Can View Metadata                               | Can Download/View PDF                           | Can CRUD Papers             | Can Approve/Reject Requests                 |
 | ---------------- | ---------- | ----------------------------------------------- | ----------------------------------------------- | --------------------------- | ------------------------------------------- |
 | STUDENT          | null       | All non-archived papers, all departments        | Only if request ACCEPTED and paper not archived | No                          | No                                          |
-| TEACHER          | null       | All papers, including archived, all departments | Only if request ACCEPTED and paper not archived | No                          | No                                          |
+| FACULTY          | null       | All papers, including archived, all departments | Only if request ACCEPTED and paper not archived | No                          | No                                          |
 | DEPARTMENT_ADMIN | Required   | All papers, including archived, all departments | Full for their department                       | Full for their department   | Approve/reject requests in their department |
 | SUPER_ADMIN      | null       | All papers, including archived, all departments | Full across all departments                     | Full across all departments | Full across all departments                 |
 
@@ -287,7 +287,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 | `userId`            | number | Unique identifier for the user                                     |
 | `email`             | string | User's email (verified by Google SSO)                              |
 | `fullName`          | string | User's full name from Google profile                               |
-| `role`              | string | User role: `STUDENT`, `TEACHER`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN` |
+| `role`              | string | User role: `STUDENT`, `FACULTY`, `DEPARTMENT_ADMIN`, `SUPER_ADMIN` |
 | `department`        | object | Department info (only for `DEPARTMENT_ADMIN`, otherwise null)      |
 | `profilePictureUrl` | string | Google profile picture URL (nullable, may be null)                 |
 
@@ -303,7 +303,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 **Authorization Scoping:**
 
 - **STUDENT**: Only years with non-archived papers (all departments)
-- **TEACHER**: All years with papers, including archived (all departments)
+- **FACULTY**: All years with papers, including archived (all departments)
 - **DEPARTMENT_ADMIN**: All years with papers, including archived (all departments)
 - **SUPER_ADMIN**: All years with papers, including archived (all departments)
 
@@ -333,7 +333,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 **Authorization Scoping:**
 
 - **STUDENT**: All departments (all departments)
-- **TEACHER**: All departments (all departments)
+- **FACULTY**: All departments (all departments)
 - **DEPARTMENT_ADMIN**: All departments (all departments)
 - **SUPER_ADMIN**: All departments (all departments)
 
@@ -393,7 +393,7 @@ The Refresh Token is **never** exposed in the JSON body. It is handled strictly 
 | Role             | Scope                                           | Can Use `archived` Param |
 | ---------------- | ----------------------------------------------- | ------------------------ |
 | STUDENT          | Non-archived papers only (all departments)      | ❌ (403 ACCESS_DENIED)   |
-| TEACHER          | All papers including archived (all departments) | ❌ (403 ACCESS_DENIED)   |
+| FACULTY          | All papers including archived (all departments) | ❌ (403 ACCESS_DENIED)   |
 | DEPARTMENT_ADMIN | All papers (all departments)                    | ✅                       |
 | SUPER_ADMIN      | All papers (all departments)                    | ✅                       |
 
@@ -432,7 +432,7 @@ departments for DEPARTMENT_ADMIN, matching the homepage behavior.
 
 | Condition                             | HTTP | Code            | Message                                                          |
 | ------------------------------------- | ---- | --------------- | ---------------------------------------------------------------- |
-| Student/Teacher uses `archived` param | 403  | ACCESS_DENIED   | "You do not have permission to filter by archived status"        |
+| Student/Faculty uses `archived` param | 403  | ACCESS_DENIED   | "You do not have permission to filter by archived status"        |
 | Invalid `sortBy` value                | 400  | INVALID_REQUEST | "Invalid sort field. Must be: submissionDate, title, authorName" |
 | Invalid `sortOrder` value             | 400  | INVALID_REQUEST | "Invalid sort order. Must be: asc, desc"                         |
 | Invalid `year` format                 | 400  | INVALID_REQUEST | "Invalid year format. Must be a 4-digit year (e.g., 2023)"       |
@@ -455,7 +455,7 @@ departments for DEPARTMENT_ADMIN, matching the homepage behavior.
 - **Response:** `ResearchPaper` object
 - **Authorization Scoping:**
     - **STUDENT:** Only non-archived papers, all departments
-    - **TEACHER:** All papers, including archived, all departments
+    - **FACULTY:** All papers, including archived, all departments
     - **DEPARTMENT_ADMIN:** All papers, including archived, all departments
     - **SUPER_ADMIN:** All papers, including archived, all departments
 
@@ -464,10 +464,10 @@ departments for DEPARTMENT_ADMIN, matching the homepage behavior.
 | Condition                                  | HTTP | Code                   | Message               |
 | ------------------------------------------ | ---- | ---------------------- | --------------------- |
 | Paper does not exist or inaccessible       | 404  | RESOURCE_NOT_FOUND     | "Paper not found"     |
-| Paper is archived (student/teacher access) | 404  | RESOURCE_NOT_AVAILABLE | "Paper not available" |
+| Paper is archived (student/faculty access) | 404  | RESOURCE_NOT_AVAILABLE | "Paper not available" |
 | Invalid paper ID format                    | 400  | INVALID_REQUEST        | "Invalid paper ID"    |
 
-**Security:** Students/teachers receive identical 404 for non-existent and inaccessible/archived
+**Security:** Students/faculty receive identical 404 for non-existent and inaccessible/archived
 papers.
 
 ### GET /api/papers/{paperId}/my-request
@@ -477,7 +477,7 @@ its currently implemented so I am not touching this lol.
 
 - Returns the current user's request for the specified paper, if it exists.
 
-- Available to STUDENT and TEACHER roles.
+- Available to STUDENT and FACULTY roles.
 
 - **Request:**
 
@@ -504,13 +504,13 @@ its currently implemented so I am not touching this lol.
 
 ---
 
-## Student/Teacher Requests
+## Student/Faculty Requests
 
 ### GET /api/users/me/requests
 
 Retrieve a paginated and filterable list of requests created by the authenticated user.
 
-- **Authentication:** JWT Required (`STUDENT` or `TEACHER`).
+- **Authentication:** JWT Required (`STUDENT` or `FACULTY`).
 - **Authorization:** Users can only see their own requests.
 - **Query Parameters:**
 
@@ -1134,7 +1134,7 @@ Download or view a research paper file.
 | ---------------- | -------------------------------------------------------------- |
 | SUPER_ADMIN      | Always allowed                                                 |
 | DEPARTMENT_ADMIN | Allowed only if paper belongs to their department              |
-| TEACHER          | Allowed only if has ACCEPTED request AND paper is not archived |
+| FACULTY          | Allowed only if has ACCEPTED request AND paper is not archived |
 | STUDENT          | Allowed only if has ACCEPTED request AND paper is not archived |
 
 **Response Headers:**
@@ -1153,8 +1153,8 @@ Download or view a research paper file.
 | Missing/Invalid JWT                   | 401  | `UNAUTHENTICATED`        | "Authentication required"                            |
 | Paper not found                       | 404  | `RESOURCE_NOT_FOUND`     | "Paper not found"                                    |
 | File missing from storage             | 404  | `FILE_NOT_FOUND`         | "File not found"                                     |
-| No approved request (Student/Teacher) | 403  | `ACCESS_DENIED`          | "You do not have access to this file"                |
-| Paper archived (Student/Teacher)      | 404  | `RESOURCE_NOT_AVAILABLE` | "Paper not available"                                |
+| No approved request (Student/Faculty) | 403  | `ACCESS_DENIED`          | "You do not have access to this file"                |
+| Paper archived (Student/Faculty)      | 404  | `RESOURCE_NOT_AVAILABLE` | "Paper not available"                                |
 | Wrong department (DEPARTMENT_ADMIN)   | 403  | `ACCESS_DENIED`          | "You do not have access to files in this department" |
 | File read/storage error               | 500  | `FILE_STORAGE_ERROR`     | "Unable to retrieve file"                            |
 
