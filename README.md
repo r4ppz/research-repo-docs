@@ -1,3 +1,3 @@
 # Research Repository Documentation
 
-> Just a school project...
+Migrated to monorepo: [https://github.com/r4ppz/research-repository](https://github.com/r4ppz/research-repository)
